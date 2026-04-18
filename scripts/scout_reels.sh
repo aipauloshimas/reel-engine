@@ -213,15 +213,30 @@ if [ "${CACHE_HIT:-0}" != "1" ]; then
 fi
 
 # ---- Parse + report ----
-printf '%s\n' "$RAW" | "$PY" - "$HANDLE" "$DAYS" <<'PYEOF'
+# NOTE: `python - <<EOF` consumes stdin for the script body, so we can't also
+# pipe data in on stdin — sys.stdin would be EOF. Pass the JSONL via a temp
+# file and read the path from argv instead.
+RAW_FILE=$(mktemp 2>/dev/null || echo "/tmp/scout_raw_$$")
+printf '%s\n' "$RAW" > "$RAW_FILE"
+trap 'rm -f "$RAW_FILE"' EXIT
+
+"$PY" - "$HANDLE" "$DAYS" "$RAW_FILE" <<'PYEOF'
 import json, sys, time
+# Windows default terminal is cp1252 — captions contain emoji/quotes that blow
+# up on encode. Reconfigure stdout to UTF-8 (with replace as last-ditch).
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
 
 handle = sys.argv[1]
 days = int(sys.argv[2])
+raw_path = sys.argv[3]
 cutoff = time.time() - days * 86400
 
 reels = []
-for line in sys.stdin:
+with open(raw_path, "r", encoding="utf-8") as f:
+  for line in f:
     line = line.strip()
     if not line:
         continue
