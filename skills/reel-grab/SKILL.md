@@ -12,17 +12,19 @@ You prepare a reel for analysis. Your job: get the video, transcription, and fra
 Everything lives under `~/reel-engine/Reels/Videos/`. The pipeline script produces files named:
 
 ```
-{AuthorName} - {FirstSrtLine} (ReelID).mp4
-{AuthorName} - {FirstSrtLine} (ReelID).srt
+{AuthorName} - {Title} (ReelID).mp4
+{AuthorName} - {Title} (ReelID).srt
 ```
+
+Where `Title` is the first spoken line of the transcription, truncated to 50 chars and sanitized for safe filenames. `AuthorName` can contain spaces.
 
 Call the portion before `.mp4` the **BaseName** — you will reuse it for the frames folder and every downstream file.
 
-- `AuthorName` = the part of BaseName before the first ` - `
+- `AuthorName` = everything before the last ` - ` in BaseName (strips off the title + ReelID)
 - `AuthorSlug` = `AuthorName` with spaces replaced by underscores (used for folder names because some tools dislike spaces)
 - `FramesDir` = `~/reel-engine/Reels/Videos/frames_{AuthorSlug}/`
 
-Keep this mapping consistent — `/reel-decode` relies on it.
+Keep this mapping consistent — `/reel-decode` and `/reel-adapt` both rely on it.
 
 ## Two modes
 
@@ -57,10 +59,10 @@ After you have `BaseName.mp4` in place, extract frames at 1fps. Derive the paths
 
 ```bash
 VIDEOS_DIR=~/reel-engine/Reels/Videos
-VIDEO_PATH="$VIDEOS_DIR/<BaseName>.mp4"          # fill in BaseName from the actual file
+# Pick the most recent .mp4 — avoids placeholder substitution errors
+VIDEO_PATH=$(ls -t "$VIDEOS_DIR"/*.mp4 2>/dev/null | head -1)
 BASE_NAME="$(basename "$VIDEO_PATH" .mp4)"
-AUTHOR_NAME="${BASE_NAME% - *}"                  # everything before the first " - "
-AUTHOR_NAME="${AUTHOR_NAME%% - *}"               # collapse if multiple separators
+AUTHOR_NAME="${BASE_NAME%% - *}"                 # everything before the first " - "
 AUTHOR_SLUG="${AUTHOR_NAME// /_}"                # spaces → underscores
 FRAMES_DIR="$VIDEOS_DIR/frames_${AUTHOR_SLUG}"
 
@@ -68,7 +70,7 @@ mkdir -p "$FRAMES_DIR"
 ffmpeg -i "$VIDEO_PATH" -vf fps=1 "$FRAMES_DIR/frame_%03d.jpg" -y
 ```
 
-Run the commands above with real values substituted — never leave `<BaseName>` literal.
+If the user has multiple `.mp4` files in Videos/ and you want a specific one, substitute `VIDEO_PATH` with the actual full path — never leave a literal placeholder in the executed command.
 
 ## Confirm and hand off
 

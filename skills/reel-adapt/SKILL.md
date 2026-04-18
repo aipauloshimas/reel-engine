@@ -16,22 +16,27 @@ You need:
 
 ### Voice check — do this first
 
-Read `~/reel-engine/VOICE.md`. Then check the very first line:
+Read the first 3 lines of `~/reel-engine/VOICE.md`. Check for the STATUS marker:
 
-- If it starts with `<!-- STATUS: template -->` → the user has not run `/voice-setup`. **Stop** and say:
-  > "Your voice profile is still the template. Run `/voice-setup` first so the script sounds like you, not a generic creator."
-- If it starts with `<!-- STATUS: configured -->` → proceed.
-- If the file is missing → same as template; tell them to run `/voice-setup`.
+- If any of the first 3 lines contains `STATUS: configured` → proceed.
+- If any of the first 3 lines contains `STATUS: template`, or the file is missing, or no marker is found → **stop** and say:
+  > "Your voice profile isn't set up yet. Run `/voice-setup` first so the script sounds like you, not a generic creator."
+
+Looking for the marker tolerantly (BOM, leading whitespace, extra newline) keeps this robust.
 
 ## Before writing — extract the hook mechanic
 
 From the storyboard, identify:
 
-1. **Hook mechanic** — what specific technique? (e.g. output-as-visual-proof, before/after, disruption claim, meta-demonstration)
-2. **Visual device** — what carries the hook visually? (product outputs playing, shocking result, the tool running live)
-3. **Spoken sentence structure** — exact grammatical pattern of the hook
-4. **Domain vocabulary** — precise technical terms used
-5. **Core emotion** — what the viewer feels in the first 3 seconds
+1. **Hook mechanic** — the specific technique that makes the first 3 seconds work. Examples:
+   - *output-as-visual-proof* — the product's output plays while the claim is spoken
+   - *before/after* — problem state followed by solved state
+   - *disruption claim* — a statement that contradicts common belief
+   - *meta-demonstration* — the video itself is made with the product being sold
+2. **Visual device** — what carries the hook visually (product outputs playing, shocking result, the tool running live)
+3. **Spoken sentence structure** — exact grammatical pattern of the hook (e.g. "X is now Y and all you need is Z")
+4. **Domain vocabulary** — the precise technical terms used. "Captions" is not "subtitles." "Motion design" is not "video production."
+5. **Core emotion** — what the viewer feels in the first 3 seconds (surprise, frustration-relief, FOMO, aspiration)
 
 These are not style preferences — they are the proven formula. Preserve all five.
 

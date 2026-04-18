@@ -11,10 +11,10 @@ You analyze a reel at the frame level to extract the exact mechanics that make i
 
 Everything lives under `~/reel-engine/Reels/Videos/`. From `/reel-grab` you have:
 
-- `BaseName.mp4` and `BaseName.srt` (where BaseName = `Author - Title (ReelID)`)
-- `frames_{AuthorSlug}/` — AuthorSlug is the author name with spaces replaced by underscores
+- `{BaseName}.mp4` and `{BaseName}.srt` where `BaseName` = `{AuthorName} - {Title} (ReelID)`
+- `frames_{AuthorSlug}/` where `AuthorSlug` is `AuthorName` with spaces replaced by underscores
 
-If you ran `/reel-grab` in this session, the BaseName is in context. If not, ask the user for the video filename (without extension) and derive the rest.
+If you ran `/reel-grab` in this session, the BaseName is in context. If not, list the newest `.mp4` in `~/reel-engine/Reels/Videos/` and confirm with the user before proceeding.
 
 ## Process
 

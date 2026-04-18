@@ -40,7 +40,7 @@ _Write your answer here._
 > Words or expressions you actually say — what sounds like you, not what sounds good.
 > Examples: "here's the thing", "look", "straight up", "in practice", "real talk".
 
-_Write your answer here (one per line or comma-separated)._
+_Write your answer here._
 
 ---
 
