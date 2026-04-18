@@ -22,10 +22,9 @@ Five Claude Code skills that work together:
 
 ## Requirements
 
-- [Claude Code](https://claude.ai/code) with your Anthropic API key configured
-- [Git](https://git-scm.com/downloads)
-- [Python 3.8+](https://www.python.org/downloads/)
-- `ffmpeg` (installed in step 3 below)
+Only one: [Claude Code](https://claude.ai/code) with your Anthropic API key configured.
+
+The install below handles everything else — Git, Python, ffmpeg, Whisper, yt-dlp, and copying the skills — and only installs what you're actually missing.
 
 ---
 
@@ -36,35 +35,58 @@ Open Claude Code in any folder and paste this message exactly:
 ````
 Install reel-engine from https://github.com/aipauloshimas/reel-engine.
 
-Follow these steps in order. Stop and tell me if any step fails.
+Detect my OS first (macOS / Linux / Windows) and use the right package manager
+(brew / apt-or-dnf-or-pacman / winget). For every dependency below: check if
+it's already installed with a version command. Only install what's missing.
+Stop and tell me if any step fails — don't try clever workarounds.
 
-1. Check whether ~/reel-engine/ already exists. If yes, stop and warn me — do not overwrite.
+1. Safety check — if ~/reel-engine/ already exists, stop and ask me before
+   doing anything else. Never overwrite.
 
-2. Clone the repo to ~/reel-engine/.
+2. Git — run `git --version`. If missing, install:
+     - macOS:   brew install git          (install Homebrew first if missing)
+     - Linux:   use the distro's package manager
+     - Windows: winget install --id Git.Git -e
 
-3. Install ffmpeg for my OS:
-   - macOS:   brew install ffmpeg
-   - Linux:   sudo apt install -y ffmpeg    (or the equivalent for my distro)
-   - Windows: winget install --id Gyan.FFmpeg -e
-   After install, run `ffmpeg -version` to verify.
+3. Python 3.8+ — run `python --version` then `python3 --version`. Need one
+   that reports 3.8 or higher. If neither works:
+     - macOS:   brew install python
+     - Linux:   distro package manager (python3 + python3-pip)
+     - Windows: winget install --id Python.Python.3.12 -e
+   After install, verify pip works: `pip --version` (or `pip3 --version`).
 
-4. Install Python dependencies:
-   pip install -r ~/reel-engine/requirements.txt
+4. ffmpeg — run `ffmpeg -version`. If missing:
+     - macOS:   brew install ffmpeg
+     - Linux:   distro package manager
+     - Windows: winget install --id Gyan.FFmpeg -e
+   On Windows, open a fresh shell after install so PATH refreshes.
 
-5. Copy every folder inside ~/reel-engine/skills/ into ~/.claude/skills/.
-   On Windows, that target is %USERPROFILE%\.claude\skills\.
+5. Clone the repo to ~/reel-engine/ (use HTTPS, not SSH).
 
-6. Verify:
-   - `yt-dlp --version`
-   - `whisper --help | head -3`
-   - `ffmpeg -version | head -1`
-   - List ~/.claude/skills/ and confirm these five folders exist:
-     reel-start, voice-setup, reel-grab, reel-decode, reel-adapt
+6. Install the Python deps:
+     pip install -r ~/reel-engine/requirements.txt
+   This installs openai-whisper and yt-dlp. Whisper pulls in ~150MB of model
+   data on first transcription — that's normal, warn me when it happens, not
+   now.
 
-7. Tell me the result of each verification, and remind me to fully quit and reopen Claude Code so the new skills load.
+7. Copy every folder inside ~/reel-engine/skills/ into ~/.claude/skills/
+   (on Windows: %USERPROFILE%\.claude\skills\). Create the target directory
+   if it doesn't exist. Don't overwrite unrelated skill folders already there.
+
+8. Verify everything:
+     - `git --version`
+     - `python --version` (or python3)
+     - `ffmpeg -version | head -1`
+     - `yt-dlp --version`
+     - `whisper --help | head -3`
+     - List ~/.claude/skills/ and confirm these five folders exist:
+       reel-start, voice-setup, reel-grab, reel-decode, reel-adapt
+
+9. Print a short summary of what you installed vs what was already present,
+   then remind me to fully quit and reopen Claude Code so the new skills load.
 ````
 
-Claude Code will handle the rest. After reopening Claude Code, type `/reel-start` to see the menu.
+After reopening Claude Code, type `/reel-start` to see the menu.
 
 ---
 
