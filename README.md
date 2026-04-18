@@ -156,7 +156,10 @@ Run each of these and report whether they produced a version/help string
   - ffmpeg -version
   - yt-dlp --version
   - gallery-dl --version
-  - whisper --help
+  - python -c "import whisper; print(whisper.__version__)"
+    (Don't use `whisper --help` on Windows — its help text contains a
+    Unicode character that crashes on cp1252 terminals. The import check
+    above is equivalent and cross-platform.)
 Then list ~/.claude/skills/ and confirm these six folders exist:
   reel-start, voice-setup, reel-scout, reel-grab, reel-decode, reel-adapt
 
