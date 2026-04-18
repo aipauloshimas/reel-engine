@@ -206,7 +206,7 @@ Everything saves to `~/reel-engine/Reels/Videos/`:
 **"command not found: whisper / yt-dlp"**
 → The install ran `pip install --user`, which puts scripts in a per-user folder that isn't always on PATH. Add the right folder to your PATH and reopen the shell:
   - macOS/Linux: add `~/.local/bin` to PATH (e.g. `export PATH="$HOME/.local/bin:$PATH"` in `~/.zshrc` or `~/.bashrc`)
-  - Windows (Git Bash): add `%APPDATA%\Python\Python3XX\Scripts` (replace `3XX` with your actual version, e.g. `312`) — you can find it with `python -c "import site; print(site.USER_BASE)"` then append `\Scripts`
+  - Windows (Git Bash): find the folder with `python -c "import site; print(site.USER_BASE + '\\Scripts')"`, then add it to PATH in your `~/.bashrc`, e.g. `export PATH="$APPDATA/Python/Python312/Scripts:$PATH"` (replace `312` with your actual version)
 If that doesn't fix it, ask Claude Code to re-run the reel-engine install.
 
 **"missing required tools: ffmpeg"**
@@ -216,7 +216,7 @@ If that doesn't fix it, ask Claude Code to re-run the reel-engine install.
 → The reel is private, deleted, rate-limited, or the URL isn't a reel/post/TV link. Wait a few minutes or try another reel.
 
 **"a file with the canonical name already exists"**
-→ You've already processed that reel. Delete the existing `.mp4` / `.srt` / `storyboard.md` from `~/reel-engine/Reels/Videos/` or pick a different reel.
+→ You've already processed that reel. The error message prints the exact `rm` command — copy-paste it into Git Bash. If you prefer a file explorer, the files live in `~/reel-engine/Reels/Videos/`.
 
 **Whisper appears stuck on first run**
 → Two possible waits: (a) during install, pip is downloading PyTorch (~2GB, 5–15 min). (b) on your first `/reel-grab`, Whisper downloads the model (~150MB, 1–2 min). Both are one-time.
@@ -287,7 +287,7 @@ Yes. The `base` model (~150MB) is pinned in the script. Your audio never leaves 
 The pipeline script validates the URL as Instagram only. For other sources, drop the video file into `~/reel-engine/Reels/Videos/` and use Mode B in `/reel-grab` — Mode B skips the yt-dlp download and runs Whisper + frame extraction directly on the file you provide, so any video works.
 
 **Can I use a bigger Whisper model?**
-For Mode A (URL downloads) edit `scripts/transcribe_reel.sh` and change `--model base` to `small`, `medium`, or `large`. For Mode B (local uploads) the model is chosen in the command `/reel-grab` runs, so tell the skill which model you want. Bigger = slower + more accurate.
+For Mode A (URL downloads) edit `~/reel-engine/scripts/transcribe_reel.sh` and change `--model base` to `small`, `medium`, or `large`. For Mode B (local uploads) the model is chosen in the command `/reel-grab` runs, so tell the skill which model you want. Bigger = slower + more accurate.
 
 **Does this post for me?**
 No. It gives you a ready-to-shoot script + storyboard. You film, edit, and post.

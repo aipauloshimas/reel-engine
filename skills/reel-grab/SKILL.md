@@ -45,10 +45,14 @@ If it fails, read the error and tell the user what to do. Don't retry blindly.
 
 ### Mode B — Video file already exists (upload or local file)
 
-Ask the user for the video file path if not clear from context. Copy or move the file into `~/reel-engine/Reels/Videos/` first — ideally renamed to the canonical `{Author} - {Title} (ID).mp4` form so downstream parsing works. If you don't know a real Author/ID, use any unique name with at least one ` - ` separator, e.g. `user_upload - myclip (local001).mp4`.
+Ask the user for the video file path if not clear from context. Copy or move the file into `~/reel-engine/Reels/Videos/` first — ideally renamed to the canonical `{Author} - {Title} (ID).mp4` form so downstream parsing works. If you don't know a real Author/ID, use any unique name with at least one ` - ` separator. Example (substitute the real source path):
 
 ```bash
-# After the .mp4 is in place, run Whisper on it (use the real path, not a placeholder):
+mv "<source_path>" ~/reel-engine/Reels/Videos/"user_upload - myclip (local001).mp4"
+VIDEO_PATH=~/reel-engine/Reels/Videos/"user_upload - myclip (local001).mp4"
+
+# Run Whisper on it. Default model is `base`; substitute small|medium|large if the user
+# explicitly asks for higher accuracy at the cost of speed.
 whisper "$VIDEO_PATH" --language en --model base --output_format srt --output_dir ~/reel-engine/Reels/Videos/
 ```
 
