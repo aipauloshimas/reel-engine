@@ -83,8 +83,9 @@ Run `git --version`. If missing:
   - macOS:   brew install git
   - Linux:   use the distro's package manager (apt / dnf / pacman)
   - Windows: winget install --id Git.Git -e
-On Windows: after installing Git, tell me to fully quit Claude Code, reopen
-it from Git Bash (Start menu → "Git Bash"), and re-paste this install block.
+On Windows: after installing Git, tell me to fully quit Claude Code (right-click
+the taskbar icon → Quit — closing the window alone is not enough), reopen it
+from Git Bash (Start menu → "Git Bash"), and re-paste this install block.
 Don't continue in the current shell — Git Bash won't activate mid-session.
 Resume mode (STEP 0) will pick up where we left off.
 
@@ -117,6 +118,22 @@ of PyTorch + its own model cache. Warn me before running that this download
 can take 5–15 minutes on a normal connection, and narrate progress every
 minute or two so I don't think it froze.
 
+STEP 5b — Fix PATH for whisper and yt-dlp.
+After pip installs, check whether `whisper --version` and `yt-dlp --version`
+work. If either says "command not found", the pip user-scripts folder is not
+on PATH yet. Fix it automatically:
+  - macOS/Linux: add `export PATH="$HOME/.local/bin:$PATH"` to ~/.zshrc or
+    ~/.bashrc, then run `source ~/.bashrc` (or ~/.zshrc).
+  - Windows (Git Bash): find the scripts folder with:
+      python -c "import site; print(site.USER_BASE + '\\Scripts')"
+    Add it to ~/.bashrc:
+      echo 'export PATH="<output from above>:$PATH"' >> ~/.bashrc
+      source ~/.bashrc
+    Also check whether ffmpeg is missing from PATH and fix it the same way
+    using the Gyan.FFmpeg install path from STEP 3.
+After sourcing, re-run `whisper --version` and `yt-dlp --version` to confirm.
+Tell me what you did and whether they're working now.
+
 STEP 6 — Install the skills.
 Copy exactly these five folders from ~/reel-engine/skills/ into ~/.claude/skills/:
 reel-start, voice-setup, reel-grab, reel-decode, reel-adapt. Don't glob or
@@ -147,10 +164,12 @@ newly installed, and its version. Then print this message in bold, as a
 standalone block, so I can't miss it:
 
     ****************************************************************
-    *  STOP. Quit Claude Code completely and reopen it before       *
-    *  running any /reel-* command. Closing the window is NOT       *
-    *  enough — use Cmd+Q (macOS) or Ctrl+Q (Windows/Linux) to      *
-    *  fully quit, then reopen. The skills won't load otherwise.    *
+    *  STOP. You must fully quit Claude Code and reopen it before   *
+    *  running any /reel-* command.                                 *
+    *  Closing the window is NOT enough — the app must exit         *
+    *  completely. Right-click the Claude Code icon in your         *
+    *  taskbar/dock and choose Quit, or use your OS quit shortcut.  *
+    *  Then reopen. The skills won't load otherwise.                *
     ****************************************************************
 ````
 
@@ -201,7 +220,7 @@ Everything saves to `~/reel-engine/Reels/Videos/`:
 ## Troubleshooting
 
 **Skills don't show up after install**
-→ You didn't fully quit Claude Code. Closing the window isn't enough — use Cmd+Q (macOS) or Ctrl+Q (Windows/Linux), then reopen. Confirm the five skill folders exist in `~/.claude/skills/`.
+→ You didn't fully quit Claude Code. Closing the window isn't enough — the app must exit completely. Right-click the Claude Code icon in your taskbar or dock and choose Quit, then reopen. Confirm the five skill folders exist in `~/.claude/skills/`.
 
 **"command not found: whisper / yt-dlp"**
 → The install ran `pip install --user`, which puts scripts in a per-user folder that isn't always on PATH. Add the right folder to your PATH and reopen the shell:
