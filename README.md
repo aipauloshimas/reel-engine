@@ -155,6 +155,7 @@ Run each of these and report whether they produced a version/help string
   - python --version  (or python3)
   - ffmpeg -version
   - yt-dlp --version
+  - gallery-dl --version
   - whisper --help
 Then list ~/.claude/skills/ and confirm these six folders exist:
   reel-start, voice-setup, reel-scout, reel-grab, reel-decode, reel-adapt
@@ -189,6 +190,8 @@ Then paste any Instagram reel URL and run `/reel-grab`.
 ## First scout run
 
 `/reel-scout` needs access to your browser's Instagram cookies — Instagram blocks anonymous profile scraping. The first time you run it, Claude will ask which browser you're logged into (chrome / firefox / edge / opera / brave) and save your choice to `~/reel-engine/scout.conf`.
+
+Under the hood, scout uses **gallery-dl** (not yt-dlp) to enumerate reels — yt-dlp's Instagram user extractor is currently broken upstream, while gallery-dl's is actively maintained. A tiny Python wrapper (`scripts/scout_fetch.py`) monkey-patches gallery-dl to preserve `play_count`, which gallery-dl drops by default. The wrapper and gallery-dl are both installed by STEP 5 (`pip install --user -r requirements.txt`).
 
 **Chrome-family caveat (Windows):** Chrome, Edge, Opera, and Brave lock their cookie database while running. Before each scout run on those browsers, close all browser windows (including background processes in the system tray). The scout finishes in seconds, then you can reopen. **Firefox doesn't have this limitation** — if it bothers you, log into Instagram on Firefox and set `BROWSER=firefox`.
 

@@ -3,3 +3,4 @@
 
 openai-whisper>=20240930
 yt-dlp>=2025.01.01
+gallery-dl>=1.31.0

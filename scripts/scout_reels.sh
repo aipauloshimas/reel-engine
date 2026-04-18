@@ -41,21 +41,28 @@ if [[ ! "$DAYS" =~ ^[0-9]+$ ]] || [ "$DAYS" -eq 0 ]; then
 fi
 
 # ---- Dependencies ----
-for cmd in yt-dlp; do
-    if ! command -v "$cmd" &>/dev/null; then
-        echo "Error: missing required tool: $cmd" >&2
-        exit 3
+# Pick a working Python interpreter. On Windows, `python3` often resolves to
+# the Microsoft Store stub — it's on PATH but just prints an install nag and
+# exits. So we test each candidate by actually running `import sys`.
+PY=""
+for candidate in python3 python py; do
+    if command -v "$candidate" &>/dev/null && \
+       "$candidate" -c "import sys; sys.exit(0)" &>/dev/null; then
+        PY="$candidate"
+        break
     fi
 done
+if [ -z "$PY" ]; then
+    echo "Error: no working Python interpreter found on PATH." >&2
+    exit 3
+fi
 
-PY="python3"
-if ! command -v python3 &>/dev/null; then
-    if command -v python &>/dev/null; then
-        PY="python"
-    else
-        echo "Error: missing required tool: python" >&2
-        exit 3
-    fi
+# gallery-dl is invoked in-process by scout_fetch.py. We verify by import so
+# a broken install fails here cleanly instead of buried inside Python later.
+if ! "$PY" -c "import gallery_dl" 2>/dev/null; then
+    echo "Error: gallery-dl is not installed for $PY." >&2
+    echo "  Run: $PY -m pip install --user gallery-dl" >&2
+    exit 3
 fi
 
 # ---- Paths ----
@@ -85,6 +92,7 @@ AUTH_MODE="none"
 if [ "${CACHE_HIT:-0}" != "1" ]; then
     BROWSER=""
     PROFILE=""
+    COOKIES_FILE=""
     if [ -f "$CONF" ]; then
         # Parse scout.conf safely — do NOT `source` it (would execute arbitrary shell).
         # Only accept KEY=VALUE lines with a whitelisted key set and safe value chars.
@@ -113,7 +121,7 @@ if [ "${CACHE_HIT:-0}" != "1" ]; then
 
     if [ -n "$BROWSER" ]; then
         case "$BROWSER" in
-            chrome|chromium|edge|firefox|opera|brave|vivaldi|safari|whale)
+            chrome|chromium|edge|firefox|opera|brave|vivaldi|safari)
                 SPEC="$BROWSER"
                 if [ -n "$PROFILE" ]; then
                     SPEC="${BROWSER}:${PROFILE}"
@@ -123,7 +131,7 @@ if [ "${CACHE_HIT:-0}" != "1" ]; then
                 ;;
             *)
                 echo "Error: invalid BROWSER value in $CONF: $BROWSER" >&2
-                echo "Supported: chrome, chromium, edge, firefox, opera, brave, vivaldi, safari, whale" >&2
+                echo "Supported: chrome, chromium, edge, firefox, opera, brave, vivaldi, safari" >&2
                 exit 10
                 ;;
         esac
@@ -138,29 +146,34 @@ if [ "${CACHE_HIT:-0}" != "1" ]; then
 fi
 
 # ---- Fetch ----
-URL="https://www.instagram.com/${HANDLE}/reels/"
+# We call scout_fetch.py (Python wrapper around gallery-dl) instead of yt-dlp
+# directly, because yt-dlp's Instagram user/reels extractor is currently broken
+# upstream ("Unable to extract data"). gallery-dl's extractor is maintained but
+# drops play_count from its output dict — the wrapper monkey-patches that.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+FETCH_PY="$SCRIPT_DIR/scout_fetch.py"
+
+if [ ! -f "$FETCH_PY" ]; then
+    echo "Error: scout_fetch.py not found next to scout_reels.sh ($FETCH_PY)" >&2
+    exit 3
+fi
 
 if [ "${CACHE_HIT:-0}" != "1" ]; then
     echo "Scanning @${HANDLE} (last ${DAYS} days, auth: ${AUTH_MODE})..." >&2
 
     STDERR_FILE=$(mktemp 2>/dev/null || echo "/tmp/scout_err_$$")
     set +e
-    RAW=$(yt-dlp \
-        "${AUTH_ARGS[@]}" \
-        --flat-playlist \
-        -j \
-        --playlist-end 30 \
-        --sleep-requests 1 \
-        --no-warnings \
-        "$URL" 2>"$STDERR_FILE")
+    RAW=$("$PY" "$FETCH_PY" "$HANDLE" --limit 30 "${AUTH_ARGS[@]}" 2>"$STDERR_FILE")
     RC=$?
     set -e
     STDERR=$(cat "$STDERR_FILE" 2>/dev/null || echo "")
     rm -f "$STDERR_FILE"
 
     if [ $RC -ne 0 ] || [ -z "$RAW" ]; then
-        # Error classification. Patterns based on yt-dlp stderr behavior; imperfect
-        # but good enough to route the user to the right fix.
+        # Error classification. gallery-dl and yt-dlp share the browser-cookie
+        # extraction path (both delegate to yt-dlp's cookies module), so the
+        # DB-locked / ABE patterns are effectively identical. Instagram API
+        # patterns are gallery-dl-specific.
         if echo "$STDERR" | grep -qiE "could not copy.*cookie database|database is locked|locked.*cookie|PermissionError.*Cookies"; then
             echo "$STDERR" >&2
             echo "---" >&2
@@ -173,19 +186,19 @@ if [ "${CACHE_HIT:-0}" != "1" ]; then
             echo "Chrome app-bound encryption blocked cookie decryption." >&2
             exit 7
         fi
-        # Check rate-limit BEFORE "login required" — a 429 may include auth-ish text
-        # in fallback messages, and misrouting it to "log in again" would make the
-        # problem worse.
-        if echo "$STDERR" | grep -qiE "HTTP Error 429|rate.?limit|please wait a few minutes|too many requests"; then
+        # Check rate-limit BEFORE "login required" — a 429 may include auth-ish
+        # text in fallback messages, and misrouting it to "log in again" makes
+        # it worse.
+        if echo "$STDERR" | grep -qiE "HTTP Error 429|429 Too Many Requests|rate.?limit|please wait a few minutes|too many requests"; then
             echo "$STDERR" >&2
             echo "---" >&2
             echo "Instagram rate-limited us. Wait 10-30 minutes before retrying." >&2
             exit 9
         fi
-        if echo "$STDERR" | grep -qiE "login required|not available.*logged|restricted.*login|requires.*authentication|401|empty media response"; then
+        if echo "$STDERR" | grep -qiE "401 Unauthorized|login required|not available.*logged|restricted.*login|requires.*authentication|LoginRequired"; then
             echo "$STDERR" >&2
             echo "---" >&2
-            echo "Not logged in to Instagram in $BROWSER (or session expired)." >&2
+            echo "Not logged in to Instagram in ${BROWSER:-<no browser configured>} (or session expired)." >&2
             exit 8
         fi
         # Generic failure
