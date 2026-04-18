@@ -325,4 +325,44 @@ if close:
     lines.append("")
 lines.append("=" * 50)
 report(lines)
+
+# ---- Append to daily outlier journal ----
+# One markdown file per day under ~/reel-engine/outliers/YYYY-MM-DD.md.
+# Deduplicates by URL within the day, so re-running the same handle doesn't
+# bloat the log. Only the "real" outliers (5x+) are journaled — close-but-
+# under reels are noise at this scale.
+if outliers:
+    import os, re
+    home = os.path.expanduser("~")
+    journal_dir = os.path.join(home, "reel-engine", "outliers")
+    os.makedirs(journal_dir, exist_ok=True)
+    today = time.strftime("%Y-%m-%d")
+    journal_path = os.path.join(journal_dir, f"{today}.md")
+
+    # Read existing URLs to avoid duplicates
+    existing_urls = set()
+    if os.path.exists(journal_path):
+        with open(journal_path, "r", encoding="utf-8") as f:
+            existing_urls = set(re.findall(r"https?://[^\s\)]+", f.read()))
+
+    new_outliers = [r for r in outliers if r["url"] not in existing_urls]
+    if new_outliers:
+        is_new_file = not os.path.exists(journal_path)
+        with open(journal_path, "a", encoding="utf-8") as f:
+            if is_new_file:
+                f.write(f"# Outliers — {today}\n\n")
+                f.write("Viral outliers (5x+ baseline) found during scouts today.\n\n")
+            f.write(f"## @{handle}\n\n")
+            f.write(f"_Scanned {len(reels)} reels (last {days} days). "
+                    f"Baseline: {baseline:,} views. Threshold: {threshold:,}._\n\n")
+            for r in new_outliers:
+                mult = r["views"] / baseline if baseline else 0
+                f.write(f"- **{r['views']:,} views** ({mult:.1f}x) — {r['url']}\n")
+                if r["title"]:
+                    # Escape markdown chars minimally
+                    t = r["title"].replace("*", r"\*").replace("_", r"\_")
+                    f.write(f"  > {t[:140]}\n")
+            f.write("\n")
+        print(f"\n[journaled {len(new_outliers)} outlier(s) to {journal_path}]",
+              file=sys.stderr)
 PYEOF

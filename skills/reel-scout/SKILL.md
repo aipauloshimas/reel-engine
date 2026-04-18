@@ -112,6 +112,10 @@ Instagram captions routinely contain emoji (🤝) and curly quotes that the defa
 
 `command -v python3` returns success for a stub that just prints an install ad and exits. The dispatcher in `scout_reels.sh` already probes candidates with `import sys` before trusting them. If you're writing a new wrapper, use the same probe — don't trust `command -v` alone.
 
+## Daily outlier journal
+
+Every time scout finds 5x+ outliers, they're appended to `~/reel-engine/outliers/YYYY-MM-DD.md` — one file per day, grouped by handle. Running the same handle twice in a day doesn't duplicate (dedup by URL). If the user asks "what did I find yesterday?" or "show me this week's outliers", just `cat` the relevant file(s).
+
 ## Caching
 
 The script caches successful scans at `~/reel-engine/.scout_cache/<handle>.json` for 2 hours. If the user re-scouts the same handle within that window, it reads from cache — no network call. This is deliberate rate-limit protection. If the user needs a fresh scan sooner, they can delete the specific cache file; don't do it automatically.
