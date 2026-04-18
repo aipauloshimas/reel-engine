@@ -45,32 +45,33 @@ If it fails, read the error and tell the user what to do. Don't retry blindly.
 
 ### Mode B — Video file already exists (upload or local file)
 
-Ask the user for the video file path if not clear from context. Then:
+Ask the user for the video file path if not clear from context. Copy or move the file into `~/reel-engine/Reels/Videos/` first — ideally renamed to the canonical `{Author} - {Title} (ID).mp4` form so downstream parsing works. If you don't know a real Author/ID, use any unique name with at least one ` - ` separator, e.g. `user_upload - myclip (local001).mp4`.
 
 ```bash
-whisper "<video_path>" --language en --model base --output_format srt --output_dir ~/reel-engine/Reels/Videos/
+# After the .mp4 is in place, run Whisper on it (use the real path, not a placeholder):
+whisper "$VIDEO_PATH" --language en --model base --output_format srt --output_dir ~/reel-engine/Reels/Videos/
 ```
 
-Rename the resulting `.srt` so its basename matches the video's basename exactly.
+Whisper writes the `.srt` using the video's basename, so if the video is named correctly the SRT matches automatically. If you had to rename, rename the SRT to match too.
+
+Remember `VIDEO_PATH` — pass it directly to the frame-extraction step below. Do **not** re-derive it via `ls -t`.
 
 ## Frame extraction (both modes)
 
-After you have `BaseName.mp4` in place, extract frames at 1fps. Derive the paths **from the actual file you just produced** — do not use placeholder strings.
+After you have the final `.mp4` in place, extract frames at 1fps. **Use the exact `VIDEO_PATH` you just worked with** — for Mode A that's the `FINAL_MP4` printed by the script; for Mode B that's the path you used with Whisper. Never recover it via `ls -t`, which silently picks the wrong file when Videos/ has other reels.
 
 ```bash
-VIDEOS_DIR=~/reel-engine/Reels/Videos
-# Pick the most recent .mp4 — avoids placeholder substitution errors
-VIDEO_PATH=$(ls -t "$VIDEOS_DIR"/*.mp4 2>/dev/null | head -1)
+VIDEO_PATH="<the exact .mp4 path you just produced>"   # pass this in explicitly
 BASE_NAME="$(basename "$VIDEO_PATH" .mp4)"
-AUTHOR_NAME="${BASE_NAME%% - *}"                 # everything before the first " - "
-AUTHOR_SLUG="${AUTHOR_NAME// /_}"                # spaces → underscores
-FRAMES_DIR="$VIDEOS_DIR/frames_${AUTHOR_SLUG}"
+AUTHOR_NAME="${BASE_NAME%% - *}"                       # everything before the first " - "
+AUTHOR_SLUG="${AUTHOR_NAME// /_}"                      # spaces → underscores
+FRAMES_DIR="$(dirname "$VIDEO_PATH")/frames_${AUTHOR_SLUG}"
 
 mkdir -p "$FRAMES_DIR"
 ffmpeg -i "$VIDEO_PATH" -vf fps=1 "$FRAMES_DIR/frame_%03d.jpg" -y
 ```
 
-If the user has multiple `.mp4` files in Videos/ and you want a specific one, substitute `VIDEO_PATH` with the actual full path — never leave a literal placeholder in the executed command.
+If `BASE_NAME` contains no ` - ` separator, `AUTHOR_NAME` ends up equal to the whole filename — that's fine for Mode B uploads, it just produces a slightly ugly folder name. Prefer renaming the upload to canonical form before you run this.
 
 ## Confirm and hand off
 

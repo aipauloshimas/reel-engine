@@ -32,7 +32,7 @@ The install below handles everything else — Git, Python, ffmpeg, Whisper, yt-d
 
 ## Before you start
 
-1. Install [Claude Code](https://claude.ai/code) and connect it to your Anthropic API key (~2 min).
+1. Install [Claude Code](https://claude.ai/code) and sign in — a Claude Pro/Max subscription or an Anthropic API key both work (~2 min). reel-engine doesn't add any extra cost: every command runs inside your Claude Code session, billed to whatever account you already use. No separate API bill from this tool.
 2. Open Claude Code. You'll see a chat interface.
 3. Copy the block in the next section, paste it into Claude Code's chat, and press Enter.
 4. The install takes **5 to 20 minutes** depending on what's already on your machine and your internet speed. You may be asked for your password (macOS/Linux) — that's Homebrew or apt.
@@ -48,6 +48,10 @@ Paste this block into Claude Code exactly:
 
 ````
 Install reel-engine from https://github.com/aipauloshimas/reel-engine.
+
+Execute all STEPs below in order without pausing to ask me "want me to continue?"
+between them. Only stop if a step fails or if a STEP explicitly tells you to
+stop and wait for me. Narrate progress as you go; don't narrate plans.
 
 Rules for this install:
 - Detect my OS first (macOS / Linux / Windows).
@@ -70,6 +74,9 @@ other steps are idempotent. Run `git -C ~/reel-engine pull` before
 continuing so any repo updates come down.
 If ~/reel-engine/ exists WITHOUT a .git folder (e.g. downloaded as a ZIP),
 tell me — I may want to rename it and clone fresh. Don't auto-delete.
+If ~/reel-engine/ has a .git folder BUT requirements.txt is missing (partial
+clone from a previous failed install), tell me and recommend I run
+`rm -rf ~/reel-engine` and re-paste this install block. Don't auto-delete.
 
 STEP 1 — Git.
 Run `git --version`. If missing:
@@ -97,8 +104,10 @@ Run `ffmpeg -version`. If missing:
 On Windows, open a fresh Git Bash shell after install so PATH refreshes.
 
 STEP 4 — Clone the repo.
-(Skip if resume mode.) Clone https://github.com/aipauloshimas/reel-engine to
-~/reel-engine/ using HTTPS.
+(Skip if resume mode.) Run exactly:
+    git clone https://github.com/aipauloshimas/reel-engine.git ~/reel-engine
+Do not substitute any other URL — the canonical source is
+github.com/aipauloshimas/reel-engine.
 
 STEP 5 — Python dependencies.
 Run: pip install --user -r ~/reel-engine/requirements.txt
@@ -195,7 +204,10 @@ Everything saves to `~/reel-engine/Reels/Videos/`:
 → You didn't fully quit Claude Code. Closing the window isn't enough — use Cmd+Q (macOS) or Ctrl+Q (Windows/Linux), then reopen. Confirm the five skill folders exist in `~/.claude/skills/`.
 
 **"command not found: whisper / yt-dlp"**
-→ Ask Claude Code to re-run the reel-engine install. If that fails, install Python 3.8+ and make sure it's in your PATH.
+→ The install ran `pip install --user`, which puts scripts in a per-user folder that isn't always on PATH. Add the right folder to your PATH and reopen the shell:
+  - macOS/Linux: add `~/.local/bin` to PATH (e.g. `export PATH="$HOME/.local/bin:$PATH"` in `~/.zshrc` or `~/.bashrc`)
+  - Windows (Git Bash): add `%APPDATA%\Python\Python3XX\Scripts` (replace `3XX` with your actual version, e.g. `312`) — you can find it with `python -c "import site; print(site.USER_BASE)"` then append `\Scripts`
+If that doesn't fix it, ask Claude Code to re-run the reel-engine install.
 
 **"missing required tools: ffmpeg"**
 → Ask Claude Code to re-run the reel-engine install. On Windows, open a fresh Git Bash window after install.
@@ -225,7 +237,7 @@ Everything saves to `~/reel-engine/Reels/Videos/`:
 
 ## Update
 
-Easiest: paste the install block again. Step 0 detects the existing install and runs in resume mode (runs `git pull`, upgrades pip deps, re-copies skills).
+Easiest: paste the install block again. Step 0 detects the existing install and runs in resume mode (runs `git pull`, re-installs pip deps if missing, re-copies skills). Resume mode does **not** upgrade pinned Python packages — if you want newer Whisper or yt-dlp, use the manual commands below.
 
 Manually (Git Bash on Windows):
 ```bash
@@ -261,7 +273,8 @@ Python packages stay installed — they're useful outside this project. Remove t
 - `VOICE.md` (your voice profile) is in `.gitignore` and **never committed**.
 - Downloaded reels live in `~/reel-engine/Reels/` and are also gitignored.
 - The repo ships with `VOICE.template.md` — an empty template. `/voice-setup` copies it to `VOICE.md` on first run.
-- Nothing is sent to any third party beyond the tools you already use: Anthropic (Claude), OpenAI Whisper (runs locally), yt-dlp (Instagram).
+- Whisper runs locally, so your audio never leaves the machine during transcription. yt-dlp talks to Instagram to fetch the reel.
+- When you run `/reel-decode` or `/reel-adapt`, Claude Code sends the extracted frames and transcript to Anthropic for analysis — that's how the storyboard and script get generated. This is the same Anthropic request path every Claude Code session uses; no third party beyond Anthropic is involved.
 
 ---
 
@@ -271,10 +284,10 @@ Python packages stay installed — they're useful outside this project. Remove t
 Yes. The `base` model (~150MB) is pinned in the script. Your audio never leaves your machine.
 
 **Can I use this on TikTok / YouTube Shorts?**
-The pipeline script validates the URL as Instagram only. For other sources, upload the video file and use Mode B in `/reel-grab` — Mode B skips the download script and runs Whisper directly, so any video works.
+The pipeline script validates the URL as Instagram only. For other sources, drop the video file into `~/reel-engine/Reels/Videos/` and use Mode B in `/reel-grab` — Mode B skips the yt-dlp download and runs Whisper + frame extraction directly on the file you provide, so any video works.
 
 **Can I use a bigger Whisper model?**
-Edit `scripts/transcribe_reel.sh` and change `--model base` to `small`, `medium`, or `large`. Bigger = slower + more accurate.
+For Mode A (URL downloads) edit `scripts/transcribe_reel.sh` and change `--model base` to `small`, `medium`, or `large`. For Mode B (local uploads) the model is chosen in the command `/reel-grab` runs, so tell the skill which model you want. Bigger = slower + more accurate.
 
 **Does this post for me?**
 No. It gives you a ready-to-shoot script + storyboard. You film, edit, and post.

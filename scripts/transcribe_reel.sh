@@ -26,9 +26,13 @@ fi
 # On Windows (Git Bash / MSYS), try to find ffmpeg from WinGet if not in PATH
 if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" ]]; then
     if ! command -v ffmpeg &>/dev/null; then
-        WINGET_FFMPEG=$(find "/c/Users/${USERNAME:-$USER}/AppData/Local/Microsoft/WinGet/Packages" -name "ffmpeg.exe" 2>/dev/null | head -1 || true)
+        # Restrict to the Gyan.FFmpeg package installed by `winget install Gyan.FFmpeg`.
+        # Broader globs can promote an unrelated packaged ffmpeg.exe to PATH head.
+        WINGET_FFMPEG=$(find "/c/Users/${USERNAME:-$USER}/AppData/Local/Microsoft/WinGet/Packages" \
+            -path "*Gyan.FFmpeg*" -name "ffmpeg.exe" 2>/dev/null | head -1 || true)
         if [ -n "$WINGET_FFMPEG" ]; then
-            export PATH="$(dirname "$WINGET_FFMPEG"):$PATH"
+            # Append, not prepend — don't let a discovered binary shadow the user's own PATH.
+            export PATH="$PATH:$(dirname "$WINGET_FFMPEG")"
         fi
     fi
 fi
@@ -68,7 +72,9 @@ RAW_PATH="$VIDEOS_DIR/${REEL_ID}.mp4"
 
 # Refuse to clobber an existing download
 if [ -e "$RAW_PATH" ]; then
-    echo "Error: $RAW_PATH already exists. Delete it or use a different reel." >&2
+    echo "Error: $RAW_PATH already exists." >&2
+    echo "Remove it first if you want to re-process this reel:" >&2
+    echo "  rm \"$RAW_PATH\"" >&2
     exit 1
 fi
 
@@ -121,7 +127,8 @@ FINAL_SRT="$VIDEOS_DIR/${FINAL_NAME}.srt"
 if [ -e "$FINAL_MP4" ] || [ -e "$FINAL_SRT" ]; then
     echo "Error: a file with the canonical name already exists:" >&2
     echo "  $FINAL_MP4" >&2
-    echo "Delete it first if you want to re-process this reel." >&2
+    echo "Remove the existing .mp4 and .srt if you want to re-process this reel:" >&2
+    echo "  rm \"$FINAL_MP4\" \"$FINAL_SRT\"" >&2
     # leave the raw files intact so user can inspect
     exit 1
 fi
