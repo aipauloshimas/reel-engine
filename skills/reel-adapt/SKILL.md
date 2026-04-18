@@ -11,8 +11,9 @@ You take the proven viral structure from a decoded reel and adapt it — same me
 
 You need:
 1. **Storyboard + analysis** from `/reel-decode`. Read `~/reel-engine/Reels/Videos/{BaseName} - storyboard.md`. If BaseName is not in context, ask the user.
-2. **User's 3 answers** from `/reel-decode`: product, target viewer, core emotion.
-3. **Voice profile** at `~/reel-engine/VOICE.md`.
+2. **Content mode** — check `~/reel-engine/Reels/Videos/{BaseName}.meta.json` if it exists. The `content_mode` field is `"spoken"` (default) or `"text_overlay"`. If meta.json is missing, the storyboard itself should indicate the mode; default to spoken.
+3. **User's 3 answers** from `/reel-decode`: product, target viewer, core emotion.
+4. **Voice profile** at `~/reel-engine/VOICE.md`.
 
 ### Voice check — do this first
 
@@ -56,7 +57,15 @@ Write the script using the voice profile. Use the user's listed phrases. Avoid w
 
 If something in their voice conflicts with what makes the hook work — keep the hook intact, adjust the walkthrough and CTA to sound like them.
 
-## Output — 3 parts, delivered together
+## Output — format depends on content mode
+
+**If `content_mode` is `text_overlay`:** skip the 3-part spoken output below. Instead, produce a text-overlay output (defined at the end of this document). Text-overlay reels don't have speech — forcing them into a spoken-script format produces broken content.
+
+**If `content_mode` is `spoken`** (default): produce the 3-part output below.
+
+---
+
+## Spoken output — 3 parts, delivered together
 
 ### PART 1 — SPOKEN SCRIPT
 
@@ -109,6 +118,36 @@ Before filming:
 
 During filming:
 - [ ] Every presenter direction
+
+## Text-overlay output
+
+Use this format when `content_mode` is `text_overlay`. Only one part, delivered directly.
+
+The original reel delivers value through on-screen text + caption, not speech. Your job is to mirror both: the on-screen hook text gets preserved (keep the mechanic), and the caption gets rewritten for the new product using the creator's voice.
+
+```
+[ON-SCREEN TEXT]
+Match the original's on-screen text structure and word count. If the
+original used a 3-word hook in yellow bold, your hook is 3 words in
+the same style. The text is the scroll-stopper — same mechanic, new
+claim for the new product.
+
+[CAPTION]
+Rewrite the caption in the creator's voice. Match the original's
+emotional tone, length, and structure (list? story? confession?
+contrarian thesis?). Swap in the creator's proof points, tools, and
+angle for the new product. End with the CTA keyword.
+
+[CTA]
+Comment [KEYWORD] to get [specific deliverable]. Keyword = 1 word, max 5 letters.
+
+[PRODUCTION NOTES]
+- Background: music or B-roll direction (match original's pacing)
+- On-screen text style: color / weight / case / animation — mirror the original exactly
+- Duration target: match the original's total runtime
+```
+
+Still produce the **SHOT-BY-SHOT BREAKDOWN** and **PRODUCTION STORYBOARD** tables below for text-overlay mode — the editor still needs them. In the Audio column, put `(music only)` and note the direction for background track. The Caption column carries the on-screen text for each beat.
 
 ## Save the output
 

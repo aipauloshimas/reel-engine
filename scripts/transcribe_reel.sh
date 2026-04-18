@@ -53,8 +53,14 @@ fi
 mkdir -p "$VIDEOS_DIR"
 
 echo "Downloading reel..."
-REEL_ID=$(yt-dlp --no-playlist --print id "$URL" 2>/dev/null | tail -1 || true)
-UPLOADER=$(yt-dlp --no-playlist --print uploader "$URL" 2>/dev/null | tail -1 || true)
+# One yt-dlp call returns id, uploader, and description (the caption). Separating
+# id/uploader/description with NUL bytes would be cleaner, but --print emits lines.
+# We tolerate captions with embedded newlines by joining everything after line 2.
+META=$(yt-dlp --no-playlist --print "%(id)s"$'\n'"%(uploader)s"$'\n'"%(description)s" "$URL" 2>/dev/null || true)
+REEL_ID=$(printf '%s' "$META" | sed -n '1p')
+UPLOADER=$(printf '%s' "$META" | sed -n '2p')
+# Everything from line 3 onward is the caption. May span multiple lines.
+CAPTION=$(printf '%s' "$META" | tail -n +3)
 
 # Sanitize REEL_ID — defense in depth. Instagram shortcodes are alphanumeric +
 # _ - but we don't trust the extractor. Whitelist + length cap.
@@ -137,7 +143,74 @@ fi
 mv -n "$RAW_PATH" "$FINAL_MP4"
 mv -n "$SRT_PATH" "$FINAL_SRT"
 
+# --- Text-overlay detection ---
+#
+# Many viral reels have no speech — they use on-screen text and background
+# music. Whisper transcribes the music into garbage ("[Music]", hallucinated
+# phrases, or a few scattered words), which poisons /reel-decode and /reel-adapt
+# if we treat it as a real spoken script. The real content in those reels
+# lives in the caption (post description).
+#
+# Heuristic: count real words in the SRT. If fewer than 15 real words survive
+# after stripping music/applause tags, treat it as text-overlay. 15 is a soft
+# threshold — tuned so a 5-second greeting still counts as spoken but a
+# 30-second music-only reel with one alert word gets caught.
+#
+# PY picker: python3 on most systems, python on Windows Git Bash.
+PY="python3"
+if ! command -v python3 &>/dev/null; then
+    PY="python"
+fi
+
+CONTENT_MODE=$("$PY" - "$FINAL_SRT" <<'PYEOF'
+import re, sys, pathlib
+srt = pathlib.Path(sys.argv[1]).read_text(encoding="utf-8", errors="ignore")
+# Strip SRT index lines, timestamp lines, blank lines.
+# What remains is the spoken text.
+text_lines = []
+for line in srt.splitlines():
+    if not line.strip():
+        continue
+    if re.match(r"^\d+$", line.strip()):
+        continue
+    if "-->" in line:
+        continue
+    text_lines.append(line)
+text = " ".join(text_lines)
+# Strip common non-speech markers Whisper emits for music/applause/noise.
+text = re.sub(r"[\[\(][^\]\)]*[\]\)]", " ", text)
+words = re.findall(r"[A-Za-z\u00C0-\u024F]+", text)
+# Print the verdict on one line so bash can capture it.
+print("text_overlay" if len(words) < 15 else "spoken")
+PYEOF
+)
+
+META_PATH="$VIDEOS_DIR/${FINAL_NAME}.meta.json"
+
+# Write a small companion JSON next to the mp4/srt. /reel-decode and /reel-adapt
+# read this to decide whether to treat the reel as spoken or text-overlay.
+# Using python for JSON because we already rely on it above, and it handles
+# caption escaping for us (newlines, quotes, unicode).
+"$PY" - "$META_PATH" "$REEL_ID" "$CONTENT_MODE" "$CAPTION" <<'PYEOF'
+import json, sys
+out_path, reel_id, content_mode, caption = sys.argv[1:5]
+data = {
+    "reel_id": reel_id,
+    "content_mode": content_mode,  # "spoken" or "text_overlay"
+    "caption": caption or "",
+}
+with open(out_path, "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
+PYEOF
+
 echo ""
 echo "Done."
 echo "Video: $FINAL_MP4"
 echo "SRT:   $FINAL_SRT"
+echo "Meta:  $META_PATH"
+echo "Mode:  $CONTENT_MODE"
+if [ "$CONTENT_MODE" = "text_overlay" ]; then
+    echo ""
+    echo "Note: this looks like a text-overlay reel (little or no speech)."
+    echo "The caption will be used as the source content instead of the transcript."
+fi

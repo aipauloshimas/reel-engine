@@ -16,7 +16,8 @@ Five Claude Code skills that work together:
 |---|---|
 | `/reel-start` | Orientation menu. Run this if you're unsure where to begin. |
 | `/voice-setup` | 5-minute interview to discover your on-camera voice. Run once. |
-| `/reel-grab` | Downloads a reel from a URL (or transcribes one you upload). Extracts frames at 1fps. |
+| `/reel-scout` | Scans a creator (or a list) for viral outliers in the last 30 days. Usage: `/reel-scout @handle` or `/reel-scout creators.txt`. |
+| `/reel-grab` | Downloads a reel from a URL (or transcribes one you upload). Extracts frames at 1fps. Detects whether the reel is spoken or text-overlay. |
 | `/reel-decode` | Analyzes every frame. Produces a storyboard + persuasion breakdown + 3 targeted questions. |
 | `/reel-adapt` | Takes your answers and writes an adapted script, shot-by-shot breakdown, and full production storyboard. |
 
@@ -135,14 +136,14 @@ After sourcing, re-run `whisper --version` and `yt-dlp --version` to confirm.
 Tell me what you did and whether they're working now.
 
 STEP 6 — Install the skills.
-Copy exactly these five folders from ~/reel-engine/skills/ into ~/.claude/skills/:
-reel-start, voice-setup, reel-grab, reel-decode, reel-adapt. Don't glob or
+Copy exactly these six folders from ~/reel-engine/skills/ into ~/.claude/skills/:
+reel-start, voice-setup, reel-scout, reel-grab, reel-decode, reel-adapt. Don't glob or
 copy anything else. Create ~/.claude/skills/ if it doesn't exist. Overwrite
-only those five folders if they already exist from a prior install.
+only those six folders if they already exist from a prior install.
 
 Concrete commands (use Git Bash on Windows):
     mkdir -p ~/.claude/skills
-    for s in reel-start voice-setup reel-grab reel-decode reel-adapt; do
+    for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt; do
         rm -rf ~/.claude/skills/$s
         cp -R ~/reel-engine/skills/$s ~/.claude/skills/$s
     done
@@ -155,8 +156,8 @@ Run each of these and report whether they produced a version/help string
   - ffmpeg -version
   - yt-dlp --version
   - whisper --help
-Then list ~/.claude/skills/ and confirm these five folders exist:
-  reel-start, voice-setup, reel-grab, reel-decode, reel-adapt
+Then list ~/.claude/skills/ and confirm these six folders exist:
+  reel-start, voice-setup, reel-scout, reel-grab, reel-decode, reel-adapt
 
 STEP 8 — Summary + restart reminder.
 Print a short table: each dependency, whether it was already installed or
@@ -185,18 +186,31 @@ Then paste any Instagram reel URL and run `/reel-grab`.
 
 ---
 
+## First scout run
+
+`/reel-scout` needs access to your browser's Instagram cookies — Instagram blocks anonymous profile scraping. The first time you run it, Claude will ask which browser you're logged into (chrome / firefox / edge / opera / brave) and save your choice to `~/reel-engine/scout.conf`.
+
+**Chrome-family caveat (Windows):** Chrome, Edge, Opera, and Brave lock their cookie database while running. Before each scout run on those browsers, close all browser windows (including background processes in the system tray). The scout finishes in seconds, then you can reopen. **Firefox doesn't have this limitation** — if it bothers you, log into Instagram on Firefox and set `BROWSER=firefox`.
+
+**Fallback:** if `--cookies-from-browser` fails (e.g. Chrome app-bound encryption), export cookies to `~/reel-engine/cookies.txt` using a browser extension like "Get cookies.txt LOCALLY". The script will use that file automatically if no `scout.conf` is found.
+
+---
+
 ## Pipeline
 
 ```
+(optional) /reel-scout @handle   find outlier reels in the last 30 days
+        ↓
 URL or uploaded video
         ↓
-   /reel-grab        downloads, transcribes, extracts frames
+   /reel-grab        downloads, transcribes, extracts frames, detects spoken vs text-overlay
         ↓
    /reel-decode      storyboard + why it works + 3 questions
         ↓
    (answer questions)
         ↓
    /reel-adapt       script + shot breakdown + production storyboard
+                     (output format switches automatically for text-overlay reels)
 ```
 
 ---
@@ -209,6 +223,7 @@ Everything saves to `~/reel-engine/Reels/Videos/`:
 |---|---|
 | `Author - Title (ReelID).mp4` | Original video |
 | `Author - Title (ReelID).srt` | Transcription |
+| `Author - Title (ReelID).meta.json` | Caption + detected content mode (spoken vs text-overlay) |
 | `frames_Author/` | Extracted frames (1fps) — `Author` with spaces replaced by underscores |
 | `Author - Title (ReelID) - storyboard.md` | Full analysis |
 | `Author - Title (ReelID) - adapted - Product.md` | Your adapted script + storyboard |
@@ -220,7 +235,7 @@ Everything saves to `~/reel-engine/Reels/Videos/`:
 ## Troubleshooting
 
 **Skills don't show up after install**
-→ You didn't fully quit Claude Code. Closing the window isn't enough — the app must exit completely. Right-click the Claude Code icon in your taskbar or dock and choose Quit, then reopen. Confirm the five skill folders exist in `~/.claude/skills/`.
+→ You didn't fully quit Claude Code. Closing the window isn't enough — the app must exit completely. Right-click the Claude Code icon in your taskbar or dock and choose Quit, then reopen. Confirm the six skill folders exist in `~/.claude/skills/`.
 
 **"command not found: whisper / yt-dlp"**
 → The install ran `pip install --user`, which puts scripts in a per-user folder that isn't always on PATH. Add the right folder to your PATH and reopen the shell:
@@ -263,7 +278,7 @@ Manually (Git Bash on Windows):
 cd ~/reel-engine
 git pull
 pip install --user -r requirements.txt --upgrade
-for s in reel-start voice-setup reel-grab reel-decode reel-adapt; do
+for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt; do
     rm -rf ~/.claude/skills/$s
     cp -R ~/reel-engine/skills/$s ~/.claude/skills/$s
 done
@@ -278,7 +293,7 @@ Fully quit and reopen Claude Code after updating.
 Git Bash on Windows, or native shell on macOS/Linux:
 ```bash
 rm -rf ~/reel-engine
-for s in reel-start voice-setup reel-grab reel-decode reel-adapt; do
+for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt; do
     rm -rf ~/.claude/skills/$s
 done
 ```

@@ -18,8 +18,22 @@ If you ran `/reel-grab` in this session, the BaseName is in context. If not, lis
 
 ## Process
 
-### 1. Read the SRT
-Read `~/reel-engine/Reels/Videos/{BaseName}.srt`. It gives you the spoken script with timestamps.
+### 0. Determine the content mode
+
+Before reading the SRT, check for `~/reel-engine/Reels/Videos/{BaseName}.meta.json`.
+
+- **If it exists:** read `content_mode` and `caption`. `content_mode` is `"spoken"` or `"text_overlay"`.
+- **If it doesn't exist** (Mode B uploads don't create it): inspect the SRT yourself. Strip timestamps and index lines, remove bracketed music/applause tags (`[Music]`, `(applause)`), count the remaining alphabetic words. Under 15 words → treat as `text_overlay`. Otherwise `spoken`. Caption is unavailable in this fallback.
+
+This branches the rest of the analysis. Viral text-overlay reels carry their value in the on-screen text and the caption — treating them as spoken reels produces broken output.
+
+### 1. Read the SRT (spoken mode) or gather on-screen text (text-overlay mode)
+
+- **Spoken mode:** read `{BaseName}.srt`. It's your primary content source.
+- **Text-overlay mode:** the SRT is not reliable — it's whatever garbage Whisper produced from the music. Your primary sources are:
+  1. The `caption` from meta.json (if present)
+  2. The on-screen text you read off the frames in step 2
+  Treat these as the actual script the reel is delivering.
 
 ### 2. Analyze frames visually
 Read every frame image in `frames_{AuthorSlug}/`.
@@ -35,9 +49,11 @@ Group frames into narrative sections based on what's visually happening. For eac
 Frame-by-frame storyboard organized into narrative sections (Hook / Problem / Solution / Demo / Brand / CTA — or whatever structure this specific video uses). For each section:
 - Timestamp range
 - What's on screen
-- What's spoken (from SRT)
+- What's spoken (from SRT) — **skip this field in text-overlay mode**; replace with "On-screen text" pulled from the frames
 - Caption style
 - Persuasion mechanic active in this moment
+
+In text-overlay mode, also include the full caption at the top of the storyboard under a **CAPTION** heading, since that's where much of the value lives.
 
 ### 4. Write "Why This Reel Works"
 6–8 specific, named mechanics. Dissect the actual techniques — not generic praise:

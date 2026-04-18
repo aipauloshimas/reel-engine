@@ -77,11 +77,29 @@ ffmpeg -i "$VIDEO_PATH" -vf fps=1 "$FRAMES_DIR/frame_%03d.jpg" -y
 
 If `BASE_NAME` contains no ` - ` separator, `AUTHOR_NAME` ends up equal to the whole filename — that's fine for Mode B uploads, it just produces a slightly ugly folder name. Prefer renaming the upload to canonical form before you run this.
 
+## Content mode detection (Mode A only — automatic)
+
+Mode A's script writes a sidecar file next to the video:
+
+```
+{BaseName}.meta.json
+```
+
+It contains `reel_id`, `caption` (the post description from Instagram), and `content_mode`:
+
+- `"spoken"` — normal reel with speech, transcript is the primary content
+- `"text_overlay"` — little or no real speech, caption is the primary content
+
+`/reel-decode` and `/reel-adapt` read this file to decide how to treat the reel. You don't need to do anything with it in `/reel-grab` — just let the user know which mode was detected. The script prints `Mode: spoken|text_overlay` at the end.
+
+**Mode B doesn't write meta.json automatically.** That's fine — `/reel-decode` runs the same detection inline on the SRT when no meta.json is present. Captions won't be available for Mode B uploads, so text-overlay handling falls back to analyzing the frames + on-screen text only.
+
 ## Confirm and hand off
 
 When done, tell the user:
 - The `BaseName` (so they can reference it)
 - Frame count (count files in `FRAMES_DIR`)
+- The detected content mode (only Mode A — say nothing if Mode B)
 - Next step: run `/reel-decode`
 
 ## If something goes wrong

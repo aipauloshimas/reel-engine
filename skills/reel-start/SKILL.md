@@ -13,13 +13,17 @@ reel-engine — decode any reel, adapt it for your product.
 FIRST TIME:
   /voice-setup    Define how you sound on camera. Run this once. 5 min.
 
+FIND REELS TO ADAPT:
+  /reel-scout     Scans a creator (or a list) for viral outliers in the last 30 days.
+                  Usage: /reel-scout @handle   or   /reel-scout creators.txt
+
 EVERY REEL:
   /reel-grab      Paste an Instagram URL. Downloads + transcribes + extracts frames.
   /reel-decode    Analyzes the reel. Produces a storyboard + 3 questions.
   /reel-adapt     Takes your answers. Writes a full adapted script + production storyboard.
 
 WORKFLOW:
-  URL  →  /reel-grab  →  /reel-decode  →  answer 3 questions  →  /reel-adapt  →  ready to shoot.
+  /reel-scout  →  pick an outlier URL  →  /reel-grab  →  /reel-decode  →  /reel-adapt  →  ready to shoot.
 
 Outputs live in ~/reel-engine/Reels/Videos/
 ```
