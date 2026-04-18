@@ -1,0 +1,5 @@
+# reel-engine Python dependencies
+# Pinned minimum versions for reproducibility across installs.
+
+openai-whisper>=20231117
+yt-dlp>=2024.10.0

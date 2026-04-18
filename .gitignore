@@ -1,0 +1,27 @@
+# User's personal voice profile — never commit
+VOICE.md
+
+# Downloaded reels and analysis outputs
+Reels/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Whisper model cache (large)
+.cache/

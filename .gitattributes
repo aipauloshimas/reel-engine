@@ -1,0 +1,9 @@
+# Ensure shell scripts use LF endings on all platforms (Windows Git Bash included)
+*.sh text eol=lf
+
+# Normalize text files
+*.md text
+*.txt text
+*.json text
+*.yml text
+*.yaml text
