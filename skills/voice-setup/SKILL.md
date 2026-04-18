@@ -110,7 +110,9 @@ If they still skip, mark those sections `(skipped — fill in later)` in the fin
 
 ## After the interview — write VOICE.md
 
-Synthesize every answer into a completed VOICE.md. **Preserve the section headings exactly** (so `/reel-adapt` can parse them):
+Synthesize every answer into a completed VOICE.md. **Always emit all 8 section headings, even for skipped questions** — `/reel-adapt` parses these headings, and missing sections will silently degrade output. For a skipped question, put `(skipped — fill in later)` under the heading instead of dropping it.
+
+The 8 required headings, in order:
 
 - `## My niche`
 - `## My audience`
@@ -121,12 +123,12 @@ Synthesize every answer into a completed VOICE.md. **Preserve the section headin
 - `## What I never want to sound like`
 - `## One-line self-description`
 
-**Critical first line:** the very first line of the file must be exactly:
+**Critical first line:** the very first line of the file must contain the string `STATUS: configured`. Write it as:
 ```
 <!-- STATUS: configured -->
 ```
 
-No blank line before it, no BOM, no spaces. `/reel-adapt` relies on this marker.
+`/reel-adapt` looks for this substring tolerantly in the first 3 lines (BOM, leading whitespace, wrapping all fine), but stick to the exact form above for clarity.
 
 Be concrete. Avoid vague adjectives like "authentic" or "relatable." Write it as a usable reference, not a transcript of the interview.
 

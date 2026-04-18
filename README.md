@@ -65,16 +65,21 @@ Rules for this install:
 
 STEP 0 — Resume mode check.
 If ~/reel-engine/ already exists AND has a .git folder AND has
-requirements.txt inside, tell me "resume mode" and skip step 5 (clone). All
-other steps are idempotent. If ~/reel-engine/ exists but isn't a valid
-repo, stop and ask me what to do — don't delete anything.
+requirements.txt inside, tell me "resume mode" and skip STEP 4 (clone). All
+other steps are idempotent. Run `git -C ~/reel-engine pull` before
+continuing so any repo updates come down.
+If ~/reel-engine/ exists WITHOUT a .git folder (e.g. downloaded as a ZIP),
+tell me — I may want to rename it and clone fresh. Don't auto-delete.
 
 STEP 1 — Git.
 Run `git --version`. If missing:
   - macOS:   brew install git
   - Linux:   use the distro's package manager (apt / dnf / pacman)
   - Windows: winget install --id Git.Git -e
-On Windows, after installing Git, switch to Git Bash for the rest of the install.
+On Windows: after installing Git, tell me to fully quit Claude Code, reopen
+it from Git Bash (Start menu → "Git Bash"), and re-paste this install block.
+Don't continue in the current shell — Git Bash won't activate mid-session.
+Resume mode (STEP 0) will pick up where we left off.
 
 STEP 2 — Python 3.8+.
 Run `python --version` then `python3 --version`. Need one that reports 3.8 or
@@ -104,21 +109,21 @@ can take 5–15 minutes on a normal connection, and narrate progress every
 minute or two so I don't think it froze.
 
 STEP 6 — Install the skills.
-Copy every folder inside ~/reel-engine/skills/ into ~/.claude/skills/.
-Create the target directory if it doesn't exist. Never overwrite unrelated
-skill folders (only overwrite reel-start, voice-setup, reel-grab,
-reel-decode, reel-adapt if they already exist from a prior install).
+Copy exactly these five folders from ~/reel-engine/skills/ into ~/.claude/skills/:
+reel-start, voice-setup, reel-grab, reel-decode, reel-adapt. Don't glob or
+copy anything else. Create ~/.claude/skills/ if it doesn't exist. Overwrite
+only those five folders if they already exist from a prior install.
 
-Concrete commands:
-  - macOS / Linux / Git Bash:
-      mkdir -p ~/.claude/skills
-      cp -R ~/reel-engine/skills/. ~/.claude/skills/
-  - Windows PowerShell (only if Git Bash isn't an option):
-      New-Item -ItemType Directory -Force $env:USERPROFILE\.claude\skills
-      Copy-Item -Recurse -Force $env:USERPROFILE\reel-engine\skills\* $env:USERPROFILE\.claude\skills\
+Concrete commands (use Git Bash on Windows):
+    mkdir -p ~/.claude/skills
+    for s in reel-start voice-setup reel-grab reel-decode reel-adapt; do
+        rm -rf ~/.claude/skills/$s
+        cp -R ~/reel-engine/skills/$s ~/.claude/skills/$s
+    done
 
 STEP 7 — Verify everything.
-Run each of these and report the first line of output:
+Run each of these and report whether they produced a version/help string
+(don't paste the full output):
   - git --version
   - python --version  (or python3)
   - ffmpeg -version
@@ -184,26 +189,53 @@ Everything saves to `~/reel-engine/Reels/Videos/`:
 
 ---
 
+## Troubleshooting
+
+**Skills don't show up after install**
+→ You didn't fully quit Claude Code. Closing the window isn't enough — use Cmd+Q (macOS) or Ctrl+Q (Windows/Linux), then reopen. Confirm the five skill folders exist in `~/.claude/skills/`.
+
+**"command not found: whisper / yt-dlp"**
+→ Ask Claude Code to re-run the reel-engine install. If that fails, install Python 3.8+ and make sure it's in your PATH.
+
+**"missing required tools: ffmpeg"**
+→ Ask Claude Code to re-run the reel-engine install. On Windows, open a fresh Git Bash window after install.
+
+**"could not fetch a valid reel ID"**
+→ The reel is private, deleted, rate-limited, or the URL isn't a reel/post/TV link. Wait a few minutes or try another reel.
+
+**"a file with the canonical name already exists"**
+→ You've already processed that reel. Delete the existing `.mp4` / `.srt` / `storyboard.md` from `~/reel-engine/Reels/Videos/` or pick a different reel.
+
+**Whisper appears stuck on first run**
+→ Two possible waits: (a) during install, pip is downloading PyTorch (~2GB, 5–15 min). (b) on your first `/reel-grab`, Whisper downloads the model (~150MB, 1–2 min). Both are one-time.
+
+**pip fails with "externally-managed-environment" (PEP 668)**
+→ The install uses `pip install --user` to avoid this. If you're running manually, add `--user`: `pip install --user -r requirements.txt`.
+
+**Windows: script fails with `\r` errors or "command not found" in Git Bash**
+→ You're probably running from PowerShell/CMD instead of Git Bash. Open Git Bash (Start menu → "Git Bash"). If that doesn't fix it, delete `~/reel-engine/` and paste the install block again.
+
+**I downloaded the repo as a ZIP and resume mode doesn't work**
+→ Rename the existing folder (e.g. `mv ~/reel-engine ~/reel-engine-zip`) and paste the install block again. The clone step will fetch a proper repo.
+
+**Install failed halfway — can I retry?**
+→ Yes. Paste the install block again. Step 0 detects the existing folder and runs in resume mode.
+
+---
+
 ## Update
 
-The easiest way: paste the install block again — it's idempotent (step 0 detects an existing install and runs in resume mode).
+Easiest: paste the install block again. Step 0 detects the existing install and runs in resume mode (runs `git pull`, upgrades pip deps, re-copies skills).
 
-Or manually:
-
-**macOS / Linux / Git Bash:**
+Manually (Git Bash on Windows):
 ```bash
 cd ~/reel-engine
 git pull
 pip install --user -r requirements.txt --upgrade
-cp -R skills/. ~/.claude/skills/
-```
-
-**Windows PowerShell:**
-```powershell
-cd $env:USERPROFILE\reel-engine
-git pull
-pip install --user -r requirements.txt --upgrade
-Copy-Item -Recurse -Force skills\* $env:USERPROFILE\.claude\skills\
+for s in reel-start voice-setup reel-grab reel-decode reel-adapt; do
+    rm -rf ~/.claude/skills/$s
+    cp -R ~/reel-engine/skills/$s ~/.claude/skills/$s
+done
 ```
 
 Fully quit and reopen Claude Code after updating.
@@ -212,50 +244,15 @@ Fully quit and reopen Claude Code after updating.
 
 ## Uninstall
 
-**macOS / Linux / Git Bash:**
+Git Bash on Windows, or native shell on macOS/Linux:
 ```bash
 rm -rf ~/reel-engine
-rm -rf ~/.claude/skills/reel-start ~/.claude/skills/voice-setup ~/.claude/skills/reel-grab ~/.claude/skills/reel-decode ~/.claude/skills/reel-adapt
-```
-
-**Windows PowerShell:**
-```powershell
-Remove-Item -Recurse -Force $env:USERPROFILE\reel-engine
-Remove-Item -Recurse -Force $env:USERPROFILE\.claude\skills\reel-start, $env:USERPROFILE\.claude\skills\voice-setup, $env:USERPROFILE\.claude\skills\reel-grab, $env:USERPROFILE\.claude\skills\reel-decode, $env:USERPROFILE\.claude\skills\reel-adapt
+for s in reel-start voice-setup reel-grab reel-decode reel-adapt; do
+    rm -rf ~/.claude/skills/$s
+done
 ```
 
 Python packages stay installed — they're useful outside this project. Remove them with `pip uninstall openai-whisper yt-dlp` if you want.
-
----
-
-## Troubleshooting
-
-**Skills don't show up after install**
-→ You didn't fully quit Claude Code. Close the window isn't enough — use Cmd+Q (macOS) or Ctrl+Q (Windows/Linux), then reopen. Confirm the five skill folders exist in `~/.claude/skills/`.
-
-**"command not found: whisper / yt-dlp"**
-→ Ask Claude Code to re-run the reel-engine install. If that fails, install Python 3.8+ and make sure it's in your PATH.
-
-**"missing required tools: ffmpeg"**
-→ Ask Claude Code to re-run the reel-engine install. On Windows, open a fresh Git Bash window after install.
-
-**"could not fetch reel ID"**
-→ The reel is private, deleted, or Instagram is rate-limiting. Wait a few minutes or try another reel.
-
-**"a file with the canonical name already exists"**
-→ You've already processed that reel. Delete the existing `.mp4` / `.srt` / `storyboard.md` from `~/reel-engine/Reels/Videos/` or pick a different reel.
-
-**Whisper appears stuck on first run**
-→ It's downloading the model (~150MB) plus PyTorch (~2GB on first install). Normal. Expect 5–15 min on first run, instant afterward.
-
-**pip fails with "externally-managed-environment" (PEP 668)**
-→ The install uses `pip install --user` to avoid this. If you're running manually, add `--user`: `pip install --user -r requirements.txt`.
-
-**Windows: script fails with `\r` errors**
-→ You're probably running from PowerShell/CMD instead of Git Bash. Open Git Bash. If that doesn't fix it, delete `~/reel-engine/` and paste the install block again.
-
-**Install failed halfway — can I retry?**
-→ Yes. Paste the install block again. Step 0 detects the existing folder and runs in resume mode, picking up where it left off.
 
 ---
 

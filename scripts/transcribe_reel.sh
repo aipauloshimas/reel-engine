@@ -12,10 +12,13 @@ if [ -z "$URL" ]; then
     exit 1
 fi
 
-# Validate URL — only Instagram host, only https. Anchored path prevents
-# hosts like instagram.com.evil.com. Prevents SSRF and accidental misuse.
-if [[ ! "$URL" =~ ^https://(www\.)?instagram\.com(/|$) ]]; then
-    echo "Error: URL must be https://instagram.com/... or https://www.instagram.com/..." >&2
+# Validate URL — only Instagram host, only https, only reel/post/tv paths.
+# Path allowlist prevents passing profile URLs, login pages, or stories.
+# Host anchor prevents lookalikes like instagram.com.evil.com.
+if [[ ! "$URL" =~ ^https://(www\.)?instagram\.com/(reel|reels|p|tv)/[A-Za-z0-9_-]+/?(\?.*)?$ ]]; then
+    echo "Error: URL must be an Instagram reel, post, or TV link:" >&2
+    echo "  https://www.instagram.com/reel/XXXXX/" >&2
+    echo "  https://www.instagram.com/p/XXXXX/" >&2
     echo "Got: $URL" >&2
     exit 1
 fi
@@ -123,8 +126,9 @@ if [ -e "$FINAL_MP4" ] || [ -e "$FINAL_SRT" ]; then
     exit 1
 fi
 
-mv "$RAW_PATH" "$FINAL_MP4"
-mv "$SRT_PATH" "$FINAL_SRT"
+# Use -n as a second defense against TOCTOU race between -e check and mv
+mv -n "$RAW_PATH" "$FINAL_MP4"
+mv -n "$SRT_PATH" "$FINAL_SRT"
 
 echo ""
 echo "Done."
