@@ -73,11 +73,44 @@ The script distinguishes failure modes so you can give the user a precise next s
 | 5 | No browser configured | Run the first-run setup above. |
 | 6 | Cookie DB locked | Ask user to **close all windows of their browser** (check tray/background). Then retry. Once it succeeds, tell them they can reopen the browser. |
 | 7 | Cookie decrypt failed (Chrome ABE) | Say: "Chrome's app-bound encryption is blocking cookie decryption. Two options: (A) switch to Firefox — do you have Instagram logged in on Firefox? (B) export cookies manually to `~/reel-engine/cookies.txt` using a browser extension. Which do you prefer?" If (A), update `scout.conf` yourself: set `BROWSER=firefox`. If (B), wait for the file. |
-| 8 | Not logged in / session expired | Say: "Instagram says we're not logged in on that browser. Please open <browser>, go to instagram.com, and log in. Then come back and tell me to retry." If it keeps failing after login, the user likely has multiple browser profiles — ask: "Which Instagram account is logged in on <browser> — the one you want to scout with? If you have more than one browser profile, you may be logged in on the other one. Tell me the email of the account." Use the email hint to locate the right profile by listing `~/AppData/Local/<browser>/User Data/` on Windows (look at `Profile N/Preferences` → account email); once found, update `scout.conf`: `PROFILE=<profile dir name>`. |
+| 8 | Not logged in / session expired | **First suspect on Chrome-family (chrome/edge/opera/brave): the browser is still running** — a locked cookie DB can fall back through as a 401 instead of code 6. Say: "Instagram says we're not logged in. Double-check the browser is **fully closed** (including system tray / background processes), then tell me to retry." If they confirm it's closed and the error persists, then ask them to open the browser, go to instagram.com, log in, fully close it again, and retry. Only after a fresh login still fails should you ask about multiple profiles: "You may have more than one browser profile and be logged in on the wrong one. What's the email of the Instagram account you want to scout with?" Locate the right profile by listing `~/AppData/Local/<browser>/User Data/` on Windows (look at `Profile N/Preferences` → account email); once found, update `scout.conf`: `PROFILE=<profile dir name>`. |
 | 9 | Rate-limited | Say: "Instagram rate-limited us. I'll pause; try again in 10-30 minutes. The 2-hour cache will protect you if you re-run on the same handle." Stop the batch. |
 | 10 | Invalid BROWSER value | Tell user the allowed list, rewrite scout.conf to their corrected choice. |
 
 On codes 4, 6, 7, 8, 9 inside a multi-handle loop: note the failure for that handle and **continue to the next**, unless it's code 9 (rate limit), which should stop the loop so we don't make things worse.
+
+## Known traps (read this before debugging)
+
+These have bitten before. If the symptom matches, apply the fix immediately — don't spiral into deeper debugging.
+
+### 1. User says "my browser is open and logged in, shouldn't that be enough?"
+
+No. Chrome-family browsers (chrome/edge/opera/brave) **lock the cookie database file while running.** gallery-dl cannot read it. The cookies persist on disk across browser shutdowns — closing the browser does **not** log the user out. The only safe sequence is:
+
+1. User logs in to Instagram in the browser (if not already).
+2. User **fully closes** the browser — every window, plus system tray / background.
+3. Run the scout. It reads cookies straight from disk.
+4. User reopens the browser freely — doesn't affect the already-cached session.
+
+If a user insists their browser needs to stay open, offer the `cookies.txt` fallback (export once via a browser extension, save to `~/reel-engine/cookies.txt`).
+
+### 2. Scout reports "No reels found" but user insists the creator has viral recent posts
+
+This used to be a real bug in the parser (stdin collision in a `python - <<HEREDOC` pipeline — fixed in commit `a856bbd`, Apr 2026). If you see this symptom on a version from before that fix, `git pull` and retry. To sanity-check the fetch layer directly:
+
+```bash
+python ~/reel-engine/scripts/scout_fetch.py <handle> --limit 5 --cookies-from-browser <browser>
+```
+
+That emits raw JSONL. If it shows reels with real `view_count` values but the shell script still says "no reels found", the parser is broken — update the repo.
+
+### 3. Windows: UnicodeEncodeError / cp1252 on emoji in captions
+
+Instagram captions routinely contain emoji (🤝) and curly quotes that the default Windows terminal encoding (cp1252) can't render. The parser block now forces `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` — if you see this crash on a downstream script, apply the same fix.
+
+### 4. Windows: `python3` resolves to the Microsoft Store stub
+
+`command -v python3` returns success for a stub that just prints an install ad and exits. The dispatcher in `scout_reels.sh` already probes candidates with `import sys` before trusting them. If you're writing a new wrapper, use the same probe — don't trust `command -v` alone.
 
 ## Caching
 
