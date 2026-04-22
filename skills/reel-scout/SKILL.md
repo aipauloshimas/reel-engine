@@ -18,23 +18,29 @@ If the user runs `/reel-scout` alone, ask:
 
 ## First-run setup (one-time)
 
-Before the first scout, check whether `~/reel-engine/scout.conf` exists. If **neither** `scout.conf` **nor** `~/reel-engine/cookies.txt` exists, **stop and ask the user once** (if `cookies.txt` is already present, skip the question — the script will use it automatically as a fallback):
+Before the first scout, check whether `~/reel-engine/scout.conf` or `~/reel-engine/cookies.txt` exists. If **neither** exists, **stop and ask the user once**:
 
-> "To scout Instagram, I need to read your browser cookies so Instagram sees us as a logged-in user (Instagram blocks anonymous profile scraping).
+> "To scout Instagram, I need cookies from a logged-in session (Instagram blocks anonymous profile scraping). Pick the most reliable option:
 >
-> Which browser do you have Instagram logged into?
-> - chrome
-> - firefox
-> - edge
-> - opera
-> - brave
+> **A) Firefox** — loga no IG no Firefox, me responde `firefox`, e esquece. Funciona consistentemente.
 >
-> Reply with the name (e.g. `chrome`)."
+> **B) Export manual de cookies** (funciona com qualquer browser, incluindo Chrome/Opera/Edge/Brave):
+>   1. Instala a extensão **"Get cookies.txt LOCALLY"** no seu browser
+>   2. Abre instagram.com (logado)
+>   3. Clica no ícone da extensão → botão **Export** (não "Export All")
+>   4. Salva o arquivo como `~/reel-engine/cookies.txt`
+>   5. Me responde `cookies`
+>
+> **Por que não Chrome/Opera/Edge/Brave direto?** Desde meados de 2024, Chrome-family usa App-Bound Encryption (ABE) que bloqueia leitura externa do cookie `sessionid`. Resultado: 401 Unauthorized. A extensão contorna isso.
+>
+> Qual: `firefox` ou `cookies`?"
 
 When they answer:
-1. Write `~/reel-engine/scout.conf` with `BROWSER=<their choice>` (lowercase).
-2. If they chose Chrome-family (chrome/edge/opera/brave), warn: "Before I run scout, please **close all windows of that browser** (including background — check tray). Chrome-family browsers lock their cookie DB while running. I'll let you know when it's safe to reopen (takes ~10 seconds)."
-3. Then proceed with the scout.
+- `firefox` → write `~/reel-engine/scout.conf` with `BROWSER=firefox`. Proceed.
+- `cookies` → wait until `~/reel-engine/cookies.txt` exists, then proceed (no scout.conf needed).
+- If they insist on Chrome-family: accept, warn that it may 401, write `BROWSER=<name>` and tell them to **close all windows of that browser** before running. If it fails, fall back to option B.
+
+**Cookie expiration (option B):** IG `sessionid` dura tecnicamente ~1 ano, mas IG pode invalidar antes (logout, troca de senha, atividade suspeita). Esperar 30–90 dias antes de precisar re-exportar. Se o scout começar a dar 401 depois de funcionar, re-exporte o `cookies.txt`.
 
 **Do not ask about profiles.** Most users have one profile. If it turns out to be the wrong one, the "not logged in" error handler below will recover.
 
@@ -72,8 +78,8 @@ The script distinguishes failure modes so you can give the user a precise next s
 | 4 | Generic fetch failure | Show stderr, suggest retrying in a few minutes. |
 | 5 | No browser configured | Run the first-run setup above. |
 | 6 | Cookie DB locked | Ask user to **close all windows of their browser** (check tray/background). Then retry. Once it succeeds, tell them they can reopen the browser. |
-| 7 | Cookie decrypt failed (Chrome ABE) | Say: "Chrome's app-bound encryption is blocking cookie decryption. Two options: (A) switch to Firefox — do you have Instagram logged in on Firefox? (B) export cookies manually to `~/reel-engine/cookies.txt` using a browser extension. Which do you prefer?" If (A), update `scout.conf` yourself: set `BROWSER=firefox`. If (B), wait for the file. |
-| 8 | Not logged in / session expired | **First suspect on Chrome-family (chrome/edge/opera/brave): the browser is still running** — a locked cookie DB can fall back through as a 401 instead of code 6. Say: "Instagram says we're not logged in. Double-check the browser is **fully closed** (including system tray / background processes), then tell me to retry." If they confirm it's closed and the error persists, then ask them to open the browser, go to instagram.com, log in, fully close it again, and retry. Only after a fresh login still fails should you ask about multiple profiles: "You may have more than one browser profile and be logged in on the wrong one. What's the email of the Instagram account you want to scout with?" Locate the right profile by listing `~/AppData/Local/<browser>/User Data/` on Windows (look at `Profile N/Preferences` → account email); once found, update `scout.conf`: `PROFILE=<profile dir name>`. |
+| 7 | Cookie decrypt failed (Chrome ABE) | Explain ABE and suggest the two reliable paths upfront: "(A) Firefox — log into IG there and reply `firefox`. (B) Install the **Get cookies.txt LOCALLY** extension in your current browser → open instagram.com → Export → save as `~/reel-engine/cookies.txt` → tell me. Which?" If (A), rewrite `scout.conf` to `BROWSER=firefox`. If (B), delete `scout.conf` so the script falls back to `cookies.txt`. |
+| 8 | Not logged in / session expired | **Chrome-family configured (chrome/opera/edge/brave):** almost certainly ABE silently blocking `sessionid` — a re-login loop won't fix it. Say: "Chrome-family blocks external reads of the auth cookie (ABE). Fastest path: install the **Get cookies.txt LOCALLY** extension → open instagram.com → Export → save as `~/reel-engine/cookies.txt` → tell me. Alternative: Firefox (reply `firefox` and I'll switch the config)." When `cookies.txt` arrives, delete `scout.conf` so the script uses it. **Firefox configured:** session likely expired — ask the user to log in to IG on Firefox and retry. **cookies.txt mode:** the file has likely expired — ask them to re-export with the same extension. |
 | 9 | Rate-limited | Say: "Instagram rate-limited us. I'll pause; try again in 10-30 minutes. The 2-hour cache will protect you if you re-run on the same handle." Stop the batch. |
 | 10 | Invalid BROWSER value | Tell user the allowed list, rewrite scout.conf to their corrected choice. |
 

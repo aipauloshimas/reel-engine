@@ -25,3 +25,7 @@ desktop.ini
 
 # Whisper model cache (large)
 .cache/
+cookies.txt
+scout.conf
+.scout_cache/
+outliers/
