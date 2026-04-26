@@ -8,6 +8,34 @@ Built by [shimas](https://github.com/aipauloshimas).
 
 ---
 
+## For Claude Code (if you are an AI agent installing this for a user)
+
+If a human asked something like "install this repo", "install reel-engine", or pasted just the URL, do this — **without asking permission between steps**, in one continuous session:
+
+1. **Make sure git is available.**
+   - macOS: `brew install git` (install Homebrew first if missing).
+   - Linux: `sudo apt-get install -y git` (or `dnf` / `pacman` equivalent).
+   - Windows: if `git --version` fails in the Bash tool, switch to the PowerShell tool and run `winget install --id Git.Git -e --silent --accept-package-agreements --accept-source-agreements`. Then return to the Bash tool.
+
+2. **Clone the repo and run `install.sh` in one shot:**
+
+   ```bash
+   git clone --depth 1 https://github.com/aipauloshimas/reel-engine.git ~/reel-engine
+   bash ~/reel-engine/install.sh
+   ```
+
+   `install.sh` is idempotent and single-pass. It detects the OS, installs Python 3.10+ and ffmpeg if missing, computes absolute paths to the freshly-installed binaries (no PATH-refresh dance, no Claude Code restart needed mid-install), `pip install --user` the deps, persists `$PATH` updates to `~/.bashrc` / `~/.zshrc`, and copies the seven skills into `~/.claude/skills/`.
+
+3. **Don't ask the user to re-paste anything.** The whole install runs as one Bash invocation. Narrate progress every minute or two — Whisper pulls ~2 GB of PyTorch and that step legitimately takes 5–15 minutes.
+
+4. **At the end, tell the user to fully quit Claude Code and reopen** (right-click the taskbar/dock icon → Quit, not just close the window — the app must exit completely so Claude Code re-scans `~/.claude/skills/`). Then `/reel-start` shows the menu.
+
+5. **If something fails:** stop and tell the user the exact error, with the one-line fix from the Troubleshooting section below. Don't invent workarounds.
+
+The full STEP 0..STEP 8 walkthrough below is for humans who want to read what `install.sh` is doing — you don't need to follow it manually.
+
+---
+
 ## What it does
 
 Seven Claude Code skills that work together:
@@ -44,9 +72,24 @@ The install below handles everything else — Git, Python, ffmpeg, Whisper, yt-d
 
 ## Install
 
-**On Windows, use Git Bash (it gets installed automatically). Don't run the install from PowerShell or CMD — paths won't resolve correctly.**
+**Option A — let Claude Code do it.** Open Claude Code and paste:
 
-Paste this block into Claude Code exactly:
+> install reel-engine from https://github.com/aipauloshimas/reel-engine
+
+Claude reads the "For Claude Code" section above and runs `install.sh` in a single pass. Whisper download (~2 GB) is the slow step. When it finishes, fully quit Claude Code and reopen, then run `/reel-start`.
+
+**Option B — run it yourself in a shell.** Requires git already installed (you can install it first via `brew install git` / `apt install git` / `winget install Git.Git`).
+
+```bash
+git clone --depth 1 https://github.com/aipauloshimas/reel-engine.git ~/reel-engine
+bash ~/reel-engine/install.sh
+```
+
+`install.sh` handles the rest: Python 3.10+ and ffmpeg via the right package manager for your OS, `pip install --user` the deps, persists `$PATH` updates, copies the seven skills into `~/.claude/skills/`. Idempotent — re-running it is safe.
+
+**On Windows:** run `install.sh` from Git Bash (gets installed alongside Git). Don't run it from PowerShell or CMD — the bash syntax won't work.
+
+**Option C — manual STEP-by-STEP** (legacy, for transparency about what `install.sh` does). If you'd rather drive each step yourself or are debugging an `install.sh` failure, paste this block into Claude Code instead:
 
 ````
 Install reel-engine from https://github.com/aipauloshimas/reel-engine.
