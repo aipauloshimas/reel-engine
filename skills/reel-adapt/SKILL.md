@@ -159,3 +159,15 @@ Save to:
 ```
 
 Confirm the file was saved and print its full path.
+
+## Output the full storyboard inline
+
+After saving, you MUST emit the entire storyboard in your response — do not summarize, do not ask if the user wants to see it, do not stop at the file path. Read the file you just saved and print all three parts inline, in this order:
+
+1. **PART 1 — SPOKEN SCRIPT** (complete, in a code block)
+2. **PART 2 — SHOT-BY-SHOT BREAKDOWN** (complete table)
+3. **PART 3 — PRODUCTION STORYBOARD** (complete scene-by-scene table + production checklist)
+
+Only after all three parts are emitted, add the hand-off line:
+
+> "Script ready. Take it to your editor or use it to film."
