@@ -341,9 +341,16 @@ for tool in yt-dlp gallery-dl; do
     if have "$tool"; then
         printf "%-12s  %s\n" "$tool" "ok    $($tool --version 2>&1 | head -1)"
     else
-        printf "%-12s  %s\n" "$tool" "MISSING from PATH (try a fresh shell)"
+        printf "%-12s  %s\n" "$tool" "MISSING from PATH — restart your shell or run /reel-doctor"
     fi
 done
+
+# Whisper CLI: separate from the import check below, since /reel-grab calls the CLI
+if have whisper; then
+    printf "%-12s  %s\n" "whisper-cli" "ok    on PATH"
+else
+    printf "%-12s  %s\n" "whisper-cli" "MISSING from PATH — restart your shell or run /reel-doctor"
+fi
 
 # Whisper: import-based check (works on Windows cp1252 terminals where `whisper --help` crashes)
 if "$PY" -c 'import whisper; print(whisper.__version__)' >/dev/null 2>&1; then
