@@ -1,8 +1,14 @@
 # User's personal voice profile — never commit
 VOICE.md
 
+# Instagram session — NEVER commit
+cookies.txt
+scout.conf
+.scout_cache/
+
 # Downloaded reels and analysis outputs
 Reels/
+outliers/
 
 # Python
 .venv/

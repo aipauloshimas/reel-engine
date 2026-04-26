@@ -10,7 +10,7 @@ Built by [shimas](https://github.com/aipauloshimas).
 
 ## What it does
 
-Five Claude Code skills that work together:
+Seven Claude Code skills that work together:
 
 | Skill | What it does |
 |---|---|
@@ -20,6 +20,7 @@ Five Claude Code skills that work together:
 | `/reel-grab` | Downloads a reel from a URL (or transcribes one you upload). Extracts frames at 1fps. Detects whether the reel is spoken or text-overlay. |
 | `/reel-decode` | Analyzes every frame. Produces a storyboard + persuasion breakdown + 3 targeted questions. |
 | `/reel-adapt` | Takes your answers and writes an adapted script, shot-by-shot breakdown, and full production storyboard. |
+| `/reel-doctor` | Re-checks and repairs system dependencies (Python, ffmpeg, yt-dlp, whisper, gallery-dl). Useful if a skill complains about a missing tool. |
 
 ---
 
@@ -136,14 +137,14 @@ After sourcing, re-run `whisper --version` and `yt-dlp --version` to confirm.
 Tell me what you did and whether they're working now.
 
 STEP 6 — Install the skills.
-Copy exactly these six folders from ~/reel-engine/skills/ into ~/.claude/skills/:
-reel-start, voice-setup, reel-scout, reel-grab, reel-decode, reel-adapt. Don't glob or
-copy anything else. Create ~/.claude/skills/ if it doesn't exist. Overwrite
-only those six folders if they already exist from a prior install.
+Copy exactly these seven folders from ~/reel-engine/skills/ into ~/.claude/skills/:
+reel-start, voice-setup, reel-scout, reel-grab, reel-decode, reel-adapt, reel-doctor.
+Don't glob or copy anything else. Create ~/.claude/skills/ if it doesn't exist.
+Overwrite only those seven folders if they already exist from a prior install.
 
 Concrete commands (use Git Bash on Windows):
     mkdir -p ~/.claude/skills
-    for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt; do
+    for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt reel-doctor; do
         rm -rf ~/.claude/skills/$s
         cp -R ~/reel-engine/skills/$s ~/.claude/skills/$s
     done
@@ -160,8 +161,8 @@ Run each of these and report whether they produced a version/help string
     (Don't use `whisper --help` on Windows — its help text contains a
     Unicode character that crashes on cp1252 terminals. The import check
     above is equivalent and cross-platform.)
-Then list ~/.claude/skills/ and confirm these six folders exist:
-  reel-start, voice-setup, reel-scout, reel-grab, reel-decode, reel-adapt
+Then list ~/.claude/skills/ and confirm these seven folders exist:
+  reel-start, voice-setup, reel-scout, reel-grab, reel-decode, reel-adapt, reel-doctor
 
 STEP 8 — Summary + restart reminder.
 Print a short table: each dependency, whether it was already installed or
@@ -241,7 +242,7 @@ Everything saves to `~/reel-engine/Reels/Videos/`:
 ## Troubleshooting
 
 **Skills don't show up after install**
-→ You didn't fully quit Claude Code. Closing the window isn't enough — the app must exit completely. Right-click the Claude Code icon in your taskbar or dock and choose Quit, then reopen. Confirm the six skill folders exist in `~/.claude/skills/`.
+→ You didn't fully quit Claude Code. Closing the window isn't enough — the app must exit completely. Right-click the Claude Code icon in your taskbar or dock and choose Quit, then reopen. Confirm the seven skill folders exist in `~/.claude/skills/`.
 
 **"command not found: whisper / yt-dlp"**
 → The install ran `pip install --user`, which puts scripts in a per-user folder that isn't always on PATH. Add the right folder to your PATH and reopen the shell:
@@ -284,7 +285,7 @@ Manually (Git Bash on Windows):
 cd ~/reel-engine
 git pull
 pip install --user -r requirements.txt --upgrade
-for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt; do
+for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt reel-doctor; do
     rm -rf ~/.claude/skills/$s
     cp -R ~/reel-engine/skills/$s ~/.claude/skills/$s
 done
@@ -299,7 +300,7 @@ Fully quit and reopen Claude Code after updating.
 Git Bash on Windows, or native shell on macOS/Linux:
 ```bash
 rm -rf ~/reel-engine
-for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt; do
+for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt reel-doctor; do
     rm -rf ~/.claude/skills/$s
 done
 ```
