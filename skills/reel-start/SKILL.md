@@ -11,7 +11,8 @@ Print this menu exactly. Don't paraphrase — the formatting is part of the expe
 reel-engine — decode any reel, adapt it for your product.
 
 FIRST TIME:
-  /voice-setup    Define how you sound on camera. Run this once. 5 min.
+  /reel-doctor    One-shot system check + install (Python, ffmpeg, whisper, yt-dlp).
+  /voice-setup    5-minute interview to capture how you sound on camera.
 
 FIND REELS TO ADAPT:
   /reel-scout     Scans a creator (or a list) for viral outliers in the last 30 days.
@@ -25,10 +26,12 @@ EVERY REEL:
 WORKFLOW:
   /reel-scout  →  pick an outlier URL  →  /reel-grab  →  /reel-decode  →  /reel-adapt  →  ready to shoot.
 
+If a skill complains about a missing tool, re-run /reel-doctor.
+
 Outputs live in ~/reel-engine/Reels/Videos/
 ```
 
 Then ask:
-> "Where do you want to start? If it's your first time, run `/voice-setup`. Otherwise paste a reel URL."
+> "Where do you want to start? If it's your first time, run `/reel-doctor` then `/voice-setup`. Otherwise paste a reel URL."
 
 Do not run any other skill automatically. Let the user pick.
