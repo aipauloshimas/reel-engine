@@ -101,6 +101,11 @@ After the answer, make a brief observation about what those creators have in com
 >
 > Example: 'He's the guy who explains complex stuff without making you feel dumb.'"
 
+### Q9: Channel language (→ `## Channel language`)
+> "Last quick one: what language do your videos go out in? If you run more than one channel, tell me the language per channel."
+
+Skip asking if the answer is already obvious from the interview; just confirm it in one line ("Your channel is in English, right?"). `/reel-adapt` reads this section to decide what language the scripts come out in, so record it even when obvious.
+
 ## Revisit skipped questions
 
 After Q8, list any questions the user skipped and ask one more time:
@@ -110,9 +115,9 @@ If they still skip, mark those sections `(skipped — fill in later)` in the fin
 
 ## After the interview — write VOICE.md
 
-Synthesize every answer into a completed VOICE.md. **Always emit all 8 section headings, even for skipped questions** — `/reel-adapt` parses these headings, and missing sections will silently degrade output. For a skipped question, put `(skipped — fill in later)` under the heading instead of dropping it.
+Synthesize every answer into a completed VOICE.md. **Always emit all 9 section headings, even for skipped questions** — `/reel-adapt` parses these headings, and missing sections will silently degrade output. For a skipped question, put `(skipped — fill in later)` under the heading instead of dropping it.
 
-The 8 required headings, in order:
+The 9 required headings, in order:
 
 - `## My niche`
 - `## My audience`
@@ -122,6 +127,7 @@ The 8 required headings, in order:
 - `## Creators whose style I respect`
 - `## What I never want to sound like`
 - `## One-line self-description`
+- `## Channel language`
 
 **Critical first line:** the very first line of the file must contain the string `STATUS: configured`. Write it as:
 ```

@@ -1,14 +1,20 @@
 #!/bin/bash
 # transcribe_reel.sh — download, transcribe, and rename an Instagram reel
-# Usage: bash transcribe_reel.sh "<URL>"
+# Usage: bash transcribe_reel.sh "<URL>" [output_dir]
+#
+# output_dir defaults to the legacy ~/reel-engine/Reels/Videos. The reel-grab
+# skill passes the session folder (the conversation's working directory) so
+# each session keeps its own reels.
 
 set -euo pipefail
 
 URL="${1:-}"
-VIDEOS_DIR="${HOME}/reel-engine/Reels/Videos"
+OUT_DIR="${2:-}"
+LEGACY_DIR="${HOME}/reel-engine/Reels/Videos"
+VIDEOS_DIR="${OUT_DIR:-$LEGACY_DIR}"
 
 if [ -z "$URL" ]; then
-    echo "Usage: bash transcribe_reel.sh <instagram_url>" >&2
+    echo "Usage: bash transcribe_reel.sh <instagram_url> [output_dir]" >&2
     exit 1
 fi
 
@@ -52,15 +58,26 @@ fi
 
 mkdir -p "$VIDEOS_DIR"
 
+# Instagram now blocks anonymous downloads ("empty media response"). If a
+# cookies.txt exists in reel-engine, pass it to yt-dlp so authenticated
+# downloads work. Netscape-format cookie file; exported from a logged-in
+# browser session. Absent file => yt-dlp runs without auth (may fail).
+COOKIES_FILE="${HOME}/reel-engine/cookies.txt"
+COOKIE_ARGS=()
+if [ -f "$COOKIES_FILE" ]; then
+    COOKIE_ARGS=(--cookies "$COOKIES_FILE")
+fi
+
 echo "Downloading reel..."
-# One yt-dlp call returns id, uploader, and description (the caption). Separating
-# id/uploader/description with NUL bytes would be cleaner, but --print emits lines.
-# We tolerate captions with embedded newlines by joining everything after line 2.
-META=$(yt-dlp --no-playlist --print "%(id)s"$'\n'"%(uploader)s"$'\n'"%(description)s" "$URL" 2>/dev/null || true)
+# One yt-dlp call returns id, uploader, uploader_id, and description (the caption).
+# Separating fields with NUL bytes would be cleaner, but --print emits lines.
+# We tolerate captions with embedded newlines by joining everything after line 3.
+META=$(yt-dlp --no-playlist "${COOKIE_ARGS[@]}" --print "%(id)s"$'\n'"%(uploader)s"$'\n'"%(uploader_id)s"$'\n'"%(description)s" "$URL" 2>/dev/null || true)
 REEL_ID=$(printf '%s' "$META" | sed -n '1p')
 UPLOADER=$(printf '%s' "$META" | sed -n '2p')
-# Everything from line 3 onward is the caption. May span multiple lines.
-CAPTION=$(printf '%s' "$META" | tail -n +3)
+UPLOADER_ID=$(printf '%s' "$META" | sed -n '3p')
+# Everything from line 4 onward is the caption. May span multiple lines.
+CAPTION=$(printf '%s' "$META" | tail -n +4)
 
 # Sanitize REEL_ID — defense in depth. Instagram shortcodes are alphanumeric +
 # _ - but we don't trust the extractor. Whitelist + length cap.
@@ -70,9 +87,28 @@ if [ -z "$REEL_ID" ]; then
     exit 1
 fi
 
-if [ -z "$UPLOADER" ]; then
+# Instagram often returns an empty uploader (display name) anonymously; yt-dlp
+# renders missing fields as "NA". Fall back to the @handle before "unknown".
+if [ -z "$UPLOADER" ] || [ "$UPLOADER" = "NA" ]; then
+    UPLOADER="$UPLOADER_ID"
+fi
+if [ -z "$UPLOADER" ] || [ "$UPLOADER" = "NA" ]; then
     UPLOADER="unknown"
 fi
+
+# Refuse to re-process a reel that already has canonical outputs, either in the
+# chosen output dir or in the legacy dir. The ReelID is known BEFORE downloading,
+# so this early exit saves the download AND the whisper run that the late
+# canonical-name check below could only catch afterwards.
+for dir in "$VIDEOS_DIR" "$LEGACY_DIR"; do
+    existing=$(ls "$dir"/*"(${REEL_ID}).mp4" 2>/dev/null | head -1 || true)
+    if [ -n "$existing" ]; then
+        echo "Error: this reel was already processed:" >&2
+        echo "  $existing" >&2
+        echo "Run /reel-decode on it, or delete the existing files to re-download." >&2
+        exit 1
+    fi
+done
 
 RAW_PATH="$VIDEOS_DIR/${REEL_ID}.mp4"
 
@@ -84,15 +120,34 @@ if [ -e "$RAW_PATH" ]; then
     exit 1
 fi
 
-yt-dlp --no-playlist -o "$RAW_PATH" "$URL"
+# Prefer H.264/AAC so the file opens in Premiere Pro and other editors
+# (Instagram often serves VP9, which Premiere can't decode). -S sorts formats
+# to favor h264 video + aac audio when available.
+yt-dlp --no-playlist "${COOKIE_ARGS[@]}" -S "vcodec:h264,acodec:aac" -o "$RAW_PATH" "$URL"
 
 if [ ! -f "$RAW_PATH" ]; then
     echo "Error: download completed but file not found at $RAW_PATH" >&2
     exit 1
 fi
 
+# Fallback: if Instagram only offered VP9/AV1, re-encode to H.264 so editors
+# (Premiere Pro, etc.) can open the file.
+VCODEC=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$RAW_PATH" || true)
+if [ "$VCODEC" != "h264" ]; then
+    echo "Downloaded codec is '$VCODEC' — re-encoding to H.264 for editor compatibility..."
+    TMP_H264="${RAW_PATH%.mp4}.h264tmp.mp4"
+    # -y and -loglevel are global options; placed after the output file ffmpeg
+    # treats them as trailing options and ignores them.
+    ffmpeg -y -loglevel error -i "$RAW_PATH" -c:v libx264 -preset fast -crf 18 -pix_fmt yuv420p \
+        -c:a aac -b:a 192k -movflags +faststart "$TMP_H264"
+    mv -f "$TMP_H264" "$RAW_PATH"
+fi
+
 echo "Transcribing (this may take a minute; first run downloads ~150MB model)..."
-whisper "$RAW_PATH" --language en --model base --output_format srt --output_dir "$VIDEOS_DIR"
+# No --language flag: Whisper auto-detects and prints "Detected language: X".
+# Forcing English on a Portuguese reel produces silent garbage that poisons
+# /reel-decode and /reel-adapt downstream.
+whisper "$RAW_PATH" --model base --output_format srt --output_dir "$VIDEOS_DIR"
 SRT_PATH="$VIDEOS_DIR/${REEL_ID}.srt"
 
 if [ ! -f "$SRT_PATH" ]; then
@@ -129,13 +184,17 @@ FINAL_NAME="${CLEAN_UPLOADER} - ${FIRST_LINE} (${REEL_ID})"
 FINAL_MP4="$VIDEOS_DIR/${FINAL_NAME}.mp4"
 FINAL_SRT="$VIDEOS_DIR/${FINAL_NAME}.srt"
 
-# Refuse to clobber final names either
+# Refuse to clobber final names either (defense in depth; the early ReelID
+# check above should normally catch this before any download happens)
 if [ -e "$FINAL_MP4" ] || [ -e "$FINAL_SRT" ]; then
     echo "Error: a file with the canonical name already exists:" >&2
     echo "  $FINAL_MP4" >&2
     echo "Remove the existing .mp4 and .srt if you want to re-process this reel:" >&2
     echo "  rm \"$FINAL_MP4\" \"$FINAL_SRT\"" >&2
-    # leave the raw files intact so user can inspect
+    # The raw mp4/srt we just produced are duplicates of already-processed
+    # content; remove them so they don't pile up as orphans.
+    rm -f "$RAW_PATH" "$SRT_PATH"
+    echo "(cleaned up the duplicate download)" >&2
     exit 1
 fi
 
@@ -155,11 +214,26 @@ mv -n "$SRT_PATH" "$FINAL_SRT"
 # after stripping music/applause tags, treat it as text-overlay. 15 is a soft
 # threshold — tuned so a 5-second greeting still counts as spoken but a
 # 30-second music-only reel with one alert word gets caught.
+# KEEP IN SYNC: the reel-decode skill (skills/reel-decode/SKILL.md) runs the
+# same 15-word fallback inline when no meta.json exists (Mode B uploads).
 #
 # PY picker: python3 on most systems, python on Windows Git Bash.
-PY="python3"
-if ! command -v python3 &>/dev/null; then
-    PY="python"
+# On Windows the bare `python3`/`python` names often resolve to the broken
+# Microsoft Store App-execution-alias stub (in WindowsApps) which errors with
+# "Python was not found". Probe each candidate by actually running it, and
+# include the known real install path as a fallback.
+PY=""
+for cand in python3 python \
+    "/c/Users/${USERNAME:-$USER}/AppData/Local/Programs/Python/Python313/python.exe" \
+    "/c/Users/${USERNAME:-$USER}/AppData/Local/Programs/Python/Python312/python.exe"; do
+    if command -v "$cand" &>/dev/null && "$cand" --version &>/dev/null; then
+        PY="$cand"
+        break
+    fi
+done
+if [ -z "$PY" ]; then
+    echo "Error: no working Python interpreter found." >&2
+    exit 1
 fi
 
 CONTENT_MODE=$("$PY" - "$FINAL_SRT" <<'PYEOF'

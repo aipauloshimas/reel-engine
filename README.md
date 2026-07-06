@@ -143,7 +143,7 @@ only those six folders if they already exist from a prior install.
 
 Concrete commands (use Git Bash on Windows):
     mkdir -p ~/.claude/skills
-    for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt; do
+    for s in reel-start reel-doctor voice-setup reel-scout reel-grab reel-decode reel-adapt; do
         rm -rf ~/.claude/skills/$s
         cp -R ~/reel-engine/skills/$s ~/.claude/skills/$s
     done
@@ -223,15 +223,15 @@ URL or uploaded video
 
 ## Output files
 
-Everything saves to `~/reel-engine/Reels/Videos/`:
+Everything saves to the **session folder**: the folder you run the Claude Code session from (your project folder for that reel). Older installs saved everything to `~/reel-engine/Reels/Videos/`; the skills still find reels there as a legacy fallback.
 
 | File | What it is |
 |---|---|
 | `Author - Title (ReelID).mp4` | Original video |
 | `Author - Title (ReelID).srt` | Transcription |
 | `Author - Title (ReelID).meta.json` | Caption + detected content mode (spoken vs text-overlay) |
-| `frames_Author/` | Extracted frames (1fps) — `Author` with spaces replaced by underscores |
-| `Author - Title (ReelID) - storyboard.md` | Full analysis |
+| `frames_Author_ReelID/` | Extracted frames (1fps); `Author` with spaces replaced by underscores. The ReelID suffix keeps two reels by the same author from mixing frames. |
+| `Author - Title (ReelID) - storyboard.md` | Full analysis + your adaptation answers |
 | `Author - Title (ReelID) - adapted - Product.md` | Your adapted script + storyboard |
 
 `Title` is the first spoken line of the reel, truncated to 50 characters.
@@ -240,8 +240,10 @@ Everything saves to `~/reel-engine/Reels/Videos/`:
 
 ## Troubleshooting
 
+**First move for anything broken: run `/reel-doctor`.** It checks every dependency (Python, ffmpeg, Whisper, yt-dlp), the pipeline script, and your Instagram cookies, then fixes what you approve. The entries below are the manual cheat sheet.
+
 **Skills don't show up after install**
-→ You didn't fully quit Claude Code. Closing the window isn't enough — the app must exit completely. Right-click the Claude Code icon in your taskbar or dock and choose Quit, then reopen. Confirm the six skill folders exist in `~/.claude/skills/`.
+→ You didn't fully quit Claude Code. Closing the window isn't enough — the app must exit completely. Right-click the Claude Code icon in your taskbar or dock and choose Quit, then reopen. Confirm the seven skill folders exist in `~/.claude/skills/`.
 
 **"command not found: whisper / yt-dlp"**
 → The install ran `pip install --user`, which puts scripts in a per-user folder that isn't always on PATH. Add the right folder to your PATH and reopen the shell:
@@ -250,13 +252,13 @@ Everything saves to `~/reel-engine/Reels/Videos/`:
 If that doesn't fix it, ask Claude Code to re-run the reel-engine install.
 
 **"missing required tools: ffmpeg"**
-→ Ask Claude Code to re-run the reel-engine install. On Windows, open a fresh Git Bash window after install.
+→ Run `/reel-doctor`. On Windows, open a fresh Git Bash window after it installs anything.
 
 **"could not fetch a valid reel ID"**
-→ The reel is private, deleted, rate-limited, or the URL isn't a reel/post/TV link. Wait a few minutes or try another reel.
+→ Check the cookies first: Instagram blocks anonymous downloads, so a missing or stale `~/reel-engine/cookies.txt` causes this. Re-export it from a logged-in browser with the "Get cookies.txt LOCALLY" extension. With fresh cookies, the reel is private, deleted, rate-limited, or the URL isn't a reel/post/TV link.
 
-**"a file with the canonical name already exists"**
-→ You've already processed that reel. The error message prints the exact `rm` command — copy-paste it into Git Bash. If you prefer a file explorer, the files live in `~/reel-engine/Reels/Videos/`.
+**"this reel was already processed" / "a file with the canonical name already exists"**
+→ You already grabbed that reel; the error prints where it lives. Run `/reel-decode` on the existing files, or delete them to re-download.
 
 **Whisper appears stuck on first run**
 → Two possible waits: (a) during install, pip is downloading PyTorch (~2GB, 5–15 min). (b) on your first `/reel-grab`, Whisper downloads the model (~150MB, 1–2 min). Both are one-time.
@@ -284,7 +286,7 @@ Manually (Git Bash on Windows):
 cd ~/reel-engine
 git pull
 pip install --user -r requirements.txt --upgrade
-for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt; do
+for s in reel-start reel-doctor voice-setup reel-scout reel-grab reel-decode reel-adapt; do
     rm -rf ~/.claude/skills/$s
     cp -R ~/reel-engine/skills/$s ~/.claude/skills/$s
 done
@@ -299,7 +301,7 @@ Fully quit and reopen Claude Code after updating.
 Git Bash on Windows, or native shell on macOS/Linux:
 ```bash
 rm -rf ~/reel-engine
-for s in reel-start voice-setup reel-scout reel-grab reel-decode reel-adapt; do
+for s in reel-start reel-doctor voice-setup reel-scout reel-grab reel-decode reel-adapt; do
     rm -rf ~/.claude/skills/$s
 done
 ```
@@ -324,7 +326,7 @@ Python packages stay installed — they're useful outside this project. Remove t
 Yes. The `base` model (~150MB) is pinned in the script. Your audio never leaves your machine.
 
 **Can I use this on TikTok / YouTube Shorts?**
-The pipeline script validates the URL as Instagram only. For other sources, drop the video file into `~/reel-engine/Reels/Videos/` and use Mode B in `/reel-grab` — Mode B skips the yt-dlp download and runs Whisper + frame extraction directly on the file you provide, so any video works.
+The pipeline script validates the URL as Instagram only. For other sources, point `/reel-grab` at the video file (Mode B): it copies the file into your session folder and runs Whisper + frame extraction directly on it, so any video works.
 
 **Can I use a bigger Whisper model?**
 For Mode A (URL downloads) edit `~/reel-engine/scripts/transcribe_reel.sh` and change `--model base` to `small`, `medium`, or `large`. For Mode B (local uploads) the model is chosen in the command `/reel-grab` runs, so tell the skill which model you want. Bigger = slower + more accurate.
