@@ -64,7 +64,7 @@ Group frames into narrative sections based on what's visually happening. For eac
 ## Storyboard
 
 **Mode:** spoken | text_overlay
-**Frames analyzed:** N (all) | N of M (sampled every Xth)
+**Frames analyzed:** N (all) | N of M (describe the sampling pattern, e.g. "every 2nd" or "2 of every 3")
 **Caption (from post):** <full caption from meta.json, or "not available">
 ```
 
@@ -73,7 +73,7 @@ In text-overlay mode, the caption from the post is not optional; much of the per
 **Required section format. Use this exact template for every section. No tables. No prose-only summaries. Every field filled for every section.**
 
 ```
-### [Section Name], [Start]-[End]s
+### [Section Name], [Start]-[End]s   (timestamps in whole seconds)
 
 - **Visual:** <environment, people, UI, graphics, text overlays on screen>
 - **Spoken (VO):** "<direct quote from SRT for this timestamp range>"
@@ -126,6 +126,8 @@ Save the full storyboard + "Why This Reel Works" analysis next to the mp4:
 ```
 
 **This must happen before Q1.** Conversations often end on Q1 if the user walks away. If the file isn't written first, all the analysis is lost and `/reel-adapt` has nothing to read. Confirm the file was written and print the exact path.
+
+If a storyboard file already exists for this reel (you're re-running the analysis), delete it first and write fresh. Never merge with stale content, and don't read the old one as a reference; it may describe frames that are no longer trusted.
 
 ### 7. Ask 3 questions, one at a time
 
