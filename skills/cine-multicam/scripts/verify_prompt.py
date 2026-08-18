@@ -57,13 +57,10 @@ REQUIRED_SENTENCES = [
 SIBLING_TOKENS = ["* At [", "From [", "kinetic super", "Kinetic super",
                   "Whip the camera", "Instantly snap", "extreme high angle"]
 
-# Camera-equipment nouns get rendered as PHYSICAL PROPS in the scene. Observed in a
-# live generation (2026-08-18): "a precision cinema robot arm pulls backwards" put an
-# actual robotic arm in frame. Describe the motion — trajectory, speed, physics — never
-# the machine that would perform it.
-RIG_NOUNS = ["robot arm", "robotic arm", "crane", "jib", "steadicam", "gimbal",
-             "dolly", "tripod", "drone", "slider", "camera rig", "camera operator",
-             "operator breathing"]
+# Only what a real generation actually broke on: "robot arm" rendered an actual robotic
+# arm into the scene as a prop (2026-08-18). Standard cinematography vocabulary --
+# dolly, travelling, crane, jib, long lens -- generates correctly and is allowed.
+RIG_NOUNS = ["robot arm", "robotic arm"]
 
 SHOT_HEADER = re.compile(
     r"^(\d{2}):(\d{2}(?:\.\d)?)[–-](\d{2}):(\d{2}(?:\.\d)?)\s+(?:—|--)\s+(.+?)\s*$")
@@ -112,10 +109,10 @@ def main():
     low = text.lower()
     for noun in RIG_NOUNS:
         if noun in low:
-            fail(f"camera-equipment noun found: {noun!r} — naming the rig makes the model "
-                 f"render it as a physical object in the scene (observed: 'robot arm' put an "
-                 f"actual robotic arm in frame). Describe the motion instead: trajectory, "
-                 f"speed, acceleration, motion blur, settle")
+            fail(f"robotic-arm noun found: {noun!r} — naming it renders an actual robotic arm "
+                 f"into the scene as a prop (observed 2026-08-18). Validated replacement: "
+                 f"'a precision camera move pulls backwards, rises slightly and curves "
+                 f"around him'. Other rig words (dolly, crane, travelling, jib) are fine")
 
     # -- required sections, in order
     positions = {}
