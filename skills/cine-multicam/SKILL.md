@@ -1,17 +1,17 @@
 ---
 name: cine-multicam
-description: Use when the user drops or points at a local talking-head or performance video and wants the cinematic multi-camera edit prompt for Seedance 2.5 — one real take re-filmed by several virtual MOVING cameras (dolly, travelling, handheld close-up, robot arm, crane) with hard cuts between them. Triggers on /cine-multicam, "cinematic multicam", "moving cameras on this take", a dropped .mp4 plus a cinematic-camera request. PT examples for reliability: "faz o prompt multicam cinematográfico desse vídeo", "bota câmeras em movimento nesse take", "edição multicâmera de cinema pro Seedance 2.5". NOT for /multicam (static-angle hard cuts, Google Omni) and NOT for /kinetic-multicam (camera whips + text supers).
+description: Use when the user drops or points at a local talking-head or performance video and wants the cinematic multi-camera edit prompt for Seedance 2.5 — one real take re-filmed by several virtual MOVING cameras (slow push-ins, lateral glides, handheld close-ups, fast sweeping arcs, rising reveals) with hard cuts between them. Triggers on /cine-multicam, "cinematic multicam", "moving cameras on this take", a dropped .mp4 plus a cinematic-camera request. PT examples for reliability: "faz o prompt multicam cinematográfico desse vídeo", "bota câmeras em movimento nesse take", "edição multicâmera de cinema pro Seedance 2.5". NOT for /multicam (static-angle hard cuts, Google Omni) and NOT for /kinetic-multicam (camera whips + text supers).
 ---
 
 # /cine-multicam: One Take → Cinematic Moving Multi-Camera
 
 ## Overview
 
-Turns ONE real take into a Seedance 2.5 prompt that re-films it from several virtual cameras that PHYSICALLY MOVE — slow dolly in, lateral travelling, handheld close-up, detail insert, one robot-arm surprise, long-lens observational, crane reveal — with clean hard cuts between shots. The prompt **preserves the uploaded source video**: performance, dialogue, timing, lip sync and original audio all frozen; only the cinematography changes. It does NOT describe or regenerate the scene.
+Turns ONE real take into a Seedance 2.5 prompt that re-films it from several virtual cameras that PHYSICALLY MOVE — slow push in, lateral glide, handheld close-up, detail insert, one fast sweeping arc, long-lens observational, rising reveal — with clean hard cuts between shots. The prompt **preserves the uploaded source video**: performance, dialogue, timing, lip sync and original audio all frozen; only the cinematography changes. It does NOT describe or regenerate the scene.
 
-Sibling skills, never mixed: `/multicam` cuts between STATIC angles (Google Omni); `/kinetic-multicam` TRAVELS between locked positions with whips + text supers (Seedance 2.0 Fast). This skill cuts hard BETWEEN shots while the camera moves WITHIN them, adds a dramaturgical arc and per-rig physical imperfections, and carries no text layer. It is the long-take sibling: sweet spot ~15–30s (the others shine under 15s).
+Sibling skills, never mixed: `/multicam` cuts between STATIC angles (Google Omni); `/kinetic-multicam` TRAVELS between locked positions with whips + text supers (Seedance 2.0 Fast). This skill cuts hard BETWEEN shots while the camera moves WITHIN them, adds a dramaturgical arc and per-move-type physical imperfections, and carries no text layer. It is the long-take sibling: sweet spot ~15–30s (the others shine under 15s).
 
-**TEMPLATE STATUS: EXPERIMENTAL v0.** Derived from a third-party Seedance 2.5 guide; not yet production-validated in-house (the siblings' templates earned FROZEN status through dated real generations — this one hasn't). Shot design varies per video, so verification is structural, not byte-frozen. When a generation misbehaves, record the user's defect report verbatim: those reports become the v2 countermeasure table.
+**TEMPLATE STATUS: EXPERIMENTAL v0.1.** Derived from a third-party Seedance 2.5 guide; one live generation so far (2026-08-18), which produced the first countermeasure (see the table at the end). Not yet production-validated in-house (the siblings' templates earned FROZEN status through dated real generations — this one hasn't). Shot design varies per video, so verification is structural, not byte-frozen. When a generation misbehaves, record the user's defect report verbatim: those reports become the v2 countermeasure table.
 
 Core principle: **the skeleton's load-bearing sentences are fixed; the shot list is designed per video from what actually happens in it** — eyes (frames) + ears (word timestamps) together, never audio alone.
 
@@ -52,7 +52,7 @@ Produce the breakdown table: time range → spoken phrase → visual event (gest
 **Base-video fitness triage** (the guide assumes one clean take; check reality):
 - Built-in cuts, wardrobe/background/lighting swaps? → list them frame-accurately; they become a `BASE VIDEO STRUCTURE` section and cut-point candidates. Warn the user this is advanced use — the method's home turf is a single continuous take.
 - Burned-in captions, REC overlays, watermarks? → `BURNED-IN GRAPHICS` section: locked in screen space, unchanged by new angles. Warn: burned-in text is the top drift risk on new viewpoints.
-- Ending loops into the opening (common in reels)? → the closing shot should resolve toward the opening framing instead of the default crane-out.
+- Ending loops into the opening (common in reels)? → the closing shot should resolve toward the opening framing instead of the default rising pull-back.
 
 **Zoom pass**: for each candidate cut point (beats.py `NAIVE_CUTS` + visual events), pin the exact action moment with 2–3 extra frames:
 
@@ -68,7 +68,7 @@ ffmpeg -y -ss <T> -i "<video>" -frames:v 1 -q:v 2 "<video dir>/frames_cine_<vide
 - Cuts land on phrase starts or at the START of a silence (round the previous word's end up to one decimal: word ends 3.98 → cut at 4.0), never mid-word; Whisper's hyphen-split words count as ONE word. A frame-verified visual event (gesture start, object pickup, built-in swap) may override the naive window — motivated beats mechanical.
 - **Semantic cuts**: when the speech names something visible ("this camera", "these cards"), the insert or reframe lands on those words.
 - Arc: default CALM → CURIOUS → INTIMATE → DETAIL → ONE DYNAMIC SURPRISE → OBSERVATIONAL → EXPANSIVE — adapt it to the video (loop-ending videos resolve to the opening framing; a video's own escalation can invert the arc). Every shot gets a FUNCTION (intimacy / reveal / detail / energy / observation / calm), not just a look.
-- **Contrast rule: at most ONE dynamic-surprise move** (robot arm or equivalent). If everything is spectacular, nothing is.
+- **Contrast rule: at most ONE dynamic-surprise move** (the fast sweeping arc or equivalent). If everything is spectacular, nothing is.
 - Durations uneven, each shot ≥ ~2s, timecodes chained to one decimal, first at 00:00.0, last ending exactly at `DURATION` rounded to one decimal.
 - **Double anchor**: every shot body ties its timecode to an action or spoken moment ("as he lifts the card", "while she turns to the window").
 - Screen direction: keep the subject's eyeline consistent; when crossing to the opposite side, say so deliberately — never flip orientation in a disorienting way.
@@ -89,7 +89,7 @@ Never skip this checkpoint or deliver before it is answered — even if the user
 
 ## Step 5 — Fill the skeleton
 
-Mutate ONLY: the shot headers + bodies (designed in Step 3); `[N]` and the arc line in CAMERA RHYTHM; the IMPERFECTIONS lines (keep only the rigs actually used); the tone sentence in FINAL FEEL; subject words ("The man"/"his" → whoever is on screen); the CRITICAL variant; the optional sections. Everything else is load-bearing — reproduce it exactly, including the negatives list.
+Mutate ONLY: the shot headers + bodies (designed in Step 3); `[N]` and the arc line in CAMERA RHYTHM; the IMPERFECTIONS lines (keep only the move types actually used); the tone sentence in FINAL FEEL; subject words ("The man"/"his" → whoever is on screen); the CRITICAL variant; the optional sections. Everything else is load-bearing — reproduce it exactly, including the negatives list.
 
 CRITICAL variants (pick by what the video actually contains):
 - **With dialogue** — as in the skeleton below.
@@ -133,11 +133,11 @@ CAMERA RHYTHM
 Controlled, cinematic, easy to read. No constant cuts. Use [N] distinct shots of uneven durations. Progression: [ARC]. Clean hard cuts only — no transitions, no morphs, no artificial effects.
 
 REAL CAMERA IMPERFECTIONS (occasional, almost subconscious — never constant, never exaggerated)
-Handheld: subtle irregular micro-movement, tiny framing corrections, occasional momentary soft focus.
-Dolly/travelling: slight physical vibration, natural acceleration and deceleration.
-Long lens: subtle telephoto vibration, minor focus breathing, slightly late reframing.
-Robot arm: precise trajectory, real acceleration, natural motion blur, tiny settling movement when stopping.
-Crane: smooth physical inertia, subtle vibration during movement.
+Handheld shots: subtle irregular micro-movement, tiny framing corrections, occasional momentary soft focus.
+Gliding and tracking moves: slight physical vibration, natural acceleration and deceleration.
+Long-lens views: subtle telephoto vibration, minor focus breathing, slightly late reframing.
+Fast sweeping moves: precise trajectory, real acceleration, natural motion blur, tiny settling movement when stopping.
+Rising and falling moves: smooth physical inertia, subtle vibration during movement.
 
 CONTINUITY — ABSOLUTELY CRITICAL
 Every shot represents the exact chronological moment occurring in the BASE VIDEO. Nothing resets because of a camera cut. Actions and gestures never repeat. Object interactions never restart. Dialogue and audio never restart. When his face is visible, his mouth matches the exact words at that timestamp. When his face is out of frame, his original voice continues normally. All shots respect the original screen direction: his eyeline stays consistent, and camera positions never flip him to the opposite side of the frame in a disorienting way. Imagine [N] real cameras filming the SAME performance simultaneously and the editor simply switching between them.
@@ -145,27 +145,30 @@ Every shot represents the exact chronological moment occurring in the BASE VIDEO
 FINAL FEEL
 [One or two tone sentences matched to the video's world.] The camera should enhance the performance, never compete with it.
 Same scene. Same person. Same performance. Same dialogue. Same voice. Same timing. ONLY THE CINEMATOGRAPHY CHANGES.
-No new dialogue. No replacement voice. No silent montage. No new actions, characters or objects. No music. No subtitles. No identity drift. No slow motion. No speed ramps. No time remapping.
+No new dialogue. No replacement voice. No silent montage. No new actions, characters or objects. No camera equipment, rigs or crew visible in frame. No music. No subtitles. No identity drift. No slow motion. No speed ramps. No time remapping.
 ```
 
 ## Movement presets (offered at the checkpoint; feelings from the source guide)
 
 | Preset | Feeling | Body wording seed |
 |---|---|---|
-| Slow dolly in | intimacy, attention | `Perform a very slow, elegant physical dolly in, starting at [distance] and ending [closer], keeping [subject] near the center of frame` |
-| Lateral travelling | energy, parallax | `Smooth lateral travelling [left/right] around [subject]; foreground elements create natural parallax` |
-| Handheld close-up | intimacy, realism | `Close-up, slightly off-axis. Subtle irregular handheld movement, tiny operator breathing, small framing corrections` |
-| Detail insert | emphasize an action | `Close detail of [hands/object]. Very short, slow travelling move. Shallow depth of field. [Subject]'s voice continues while the face is out of frame` |
-| Robot arm (THE dynamic one) | precision, surprise | `The one noticeably dynamic move. A precision cinema robot arm [pulls backwards / rises / curves around], fast but elegant, accelerating then decelerating naturally, with realistic motion blur at the fastest point` |
+| Slow push in | intimacy, attention | `The camera eases forward very slowly and steadily, starting at [distance] and ending [closer], keeping [subject] near the center of frame` |
+| Lateral glide | energy, parallax | `The camera glides smoothly sideways to the [left/right] around [subject]; foreground elements create natural parallax` |
+| Handheld close-up | intimacy, realism | `Close-up, slightly off-axis. Subtle irregular handheld movement, tiny breathing motion, small framing corrections` |
+| Detail insert | emphasize an action | `Close detail of [hands/object]. Very short, slow gliding move. Shallow depth of field. [Subject]'s voice continues while the face is out of frame` |
+| Fast sweeping arc (THE dynamic one) | precision, surprise | `The one noticeably dynamic move. The camera sweeps [backwards / upward / around], curving along a single precise arc, fast but elegant, accelerating then decelerating naturally, with realistic motion blur at the fastest point` |
 | Long-lens observational | candid, documentary | `Viewpoint from farther away, longer lens, filmed partially through foreground elements; subtle telephoto vibration, tiny late reframing` |
-| Crane up + pull back | reveal, scale, ending | `Smooth crane up combined with a gradual dolly back, slowly revealing [environment]; finish on a slightly asymmetrical wide composition` |
+| Rise and pull back | reveal, scale, ending | `The camera rises smoothly while easing gradually backwards, slowly revealing [environment]; finish on a slightly asymmetrical wide composition` |
 | Static wide | calm, contrast | `Locked-off wide shot; [subject] centered, still performing; the frame simply observes` |
 | Rack focus | redirect attention | `Focus shifts deliberately from [A] to [B] and settles` |
+
+**Describe the motion, never the machine.** Every seed above names a trajectory, a speed and a physical behaviour — no equipment. See the countermeasure table at the end for why.
 
 ## Do NOT (observed failure modes this skill exists to prevent)
 
 - Do NOT write a generative scene-description prompt — character sheets, setting paragraphs, "CAM A/B/C" lists. That recreates the scene from text and guarantees identity drift. The template preserves the uploaded take.
 - Do NOT paste the dialogue or any transcript into the prompt (no `DIALOGUE MAP`, no quoted lines). The observed baseline failure: a word-timed transcript pasted in — it invites the model to REGENERATE the speech instead of preserving the source audio. The verifier rejects unknown sections for exactly this reason.
+- Do NOT name camera equipment anywhere in the prompt — no "robot arm", "crane", "dolly", "jib", "steadicam", "gimbal", "tripod", "drone", "slider" or "camera operator". Observed in a live generation: "a precision cinema robot arm pulls backwards" rendered an actual robotic arm into the scene as a physical prop. Equipment nouns become objects. Describe the trajectory, speed, acceleration, motion blur and settle instead; `verify_prompt.py` fails on rig nouns.
 - Do NOT ask the user for face reference images, or tell them to crop or attach any asset. The skill is plug and play: base video in, prompt out. Identity comes from the footage, and the skeleton's identity line says exactly that.
 - Do NOT skip the checkpoint or deliver before it is answered — the observed baseline shipped a finished prompt without ever asking. "The user is in a hurry / away" does not waive it; present and wait.
 - Do NOT transcribe outside beats.py (no ad-hoc whisper models, formats or output dirs — the observed baseline forked the cache with `large-v3-turbo --output_format all`). One cache: `<video stem>.json`, model `small`.
@@ -175,3 +178,11 @@ No new dialogue. No replacement voice. No silent montage. No new actions, charac
 - Do NOT "fix" the base video: never smooth its built-in jump cuts, never beautify intentionally ugly segments, never treat burned-in captions as removable — they are content to preserve (triage, Step 2).
 - Do NOT invent Seedance 2.5 specs (generation-length cap, resolution limits are unverified). If a generation truncates or refuses, record the facts for v2 instead of guessing workarounds into the prompt.
 - Do NOT deliver without a `PASS` from `scripts/verify_prompt.py` on the saved file, and do NOT save under any name but `<video basename>_cine_multicam_prompt.txt`.
+
+## Countermeasure table (defects reported from live generations)
+
+Each row is a real defect a user reported after generating, plus the fix now baked into the skill. This is how the EXPERIMENTAL template hardens — never delete a row, and add one every time a generation misbehaves.
+
+| Reported defect | Date | Countermeasure |
+|---|---|---|
+| Naming the rig ("a precision cinema **robot arm** pulls backwards…") made the model render an actual robotic arm into the scene as a physical prop. | 2026-08-18 | Describe the motion, never the machine. All equipment nouns are banned from the prompt and `verify_prompt.py` fails on them (`RIG_NOUNS`). The presets and the IMPERFECTIONS block are written as move types ("Fast sweeping moves"), and the negatives list carries `No camera equipment, rigs or crew visible in frame.` |

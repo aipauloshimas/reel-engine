@@ -15,8 +15,9 @@ PASS iff:
   - 4-8 shot blocks with `MM:SS.d–MM:SS.d — NAME` headers: ascending, chained
     (end N == start N+1), first at 00:00, last == --duration (within 0.1s);
   - shot durations are not all equal (uneven-rhythm rule);
-  - at most ONE dynamic-surprise shot ("noticeably dynamic" / robot arm);
-  - no sibling-skill tokens (/multicam and /kinetic-multicam must never leak in).
+  - at most ONE dynamic-surprise shot (marked "noticeably dynamic");
+  - no sibling-skill tokens (/multicam and /kinetic-multicam must never leak in);
+  - no camera-equipment nouns (they get rendered as props in the scene).
 
 Soft reports (warn, never fail): a shot missing an action anchor
 ("as he/she/they...", "when/while..."); no dynamic-surprise shot at all.
@@ -49,11 +50,20 @@ REQUIRED_SENTENCES = [
     "No new dialogue.", "No replacement voice.", "No silent montage.",
     "No new actions, characters or objects.", "No music.", "No subtitles.",
     "No identity drift.", "No slow motion.", "No speed ramps.", "No time remapping.",
+    "No camera equipment, rigs or crew visible in frame.",
 ]
 
 # tokens owned by the sibling skills; any of them here means a frankenstein prompt
 SIBLING_TOKENS = ["* At [", "From [", "kinetic super", "Kinetic super",
                   "Whip the camera", "Instantly snap", "extreme high angle"]
+
+# Camera-equipment nouns get rendered as PHYSICAL PROPS in the scene. Observed in a
+# live generation (2026-08-18): "a precision cinema robot arm pulls backwards" put an
+# actual robotic arm in frame. Describe the motion — trajectory, speed, physics — never
+# the machine that would perform it.
+RIG_NOUNS = ["robot arm", "robotic arm", "crane", "jib", "steadicam", "gimbal",
+             "dolly", "tripod", "drone", "slider", "camera rig", "camera operator",
+             "operator breathing"]
 
 SHOT_HEADER = re.compile(
     r"^(\d{2}):(\d{2}(?:\.\d)?)[–-](\d{2}):(\d{2}(?:\.\d)?)\s+(?:—|--)\s+(.+?)\s*$")
@@ -65,7 +75,7 @@ ANCHOR = re.compile(r"\b(?:as|when|while)\s+(?:he|she|they|his|her|their|the)\b"
 # (the observed baseline failure: a word-timed DIALOGUE MAP pasted into the prompt)
 CAPS_HEADER = re.compile(r"^[A-Z][A-Z0-9 \-–—&()'/+]{3,50}$")
 
-DYNAMIC = re.compile(r"noticeably dynamic|robot arm", re.IGNORECASE)
+DYNAMIC = re.compile(r"noticeably dynamic", re.IGNORECASE)
 
 
 def fail(msg: str):
@@ -97,6 +107,15 @@ def main():
         if tok in text:
             fail(f"sibling-skill token found: {tok!r} — /multicam and /kinetic-multicam "
                  f"templates must never be mixed into a cine-multicam prompt")
+
+    # -- camera-rig nouns become props in the generated scene
+    low = text.lower()
+    for noun in RIG_NOUNS:
+        if noun in low:
+            fail(f"camera-equipment noun found: {noun!r} — naming the rig makes the model "
+                 f"render it as a physical object in the scene (observed: 'robot arm' put an "
+                 f"actual robotic arm in frame). Describe the motion instead: trajectory, "
+                 f"speed, acceleration, motion blur, settle")
 
     # -- required sections, in order
     positions = {}
